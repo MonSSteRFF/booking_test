@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.env
+*.log
+mongo-data/
+clickhouse-data/
+.idea

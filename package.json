@@ -1,0 +1,9 @@
+{
+  "name": "full_test",
+  "type": "module",
+  "scripts": {},
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.3",
+    "typescript": "^7.0.2"
+  }
+}

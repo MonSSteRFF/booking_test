@@ -1,0 +1,51 @@
+name: "booking"
+
+services:
+  mongodb:
+    image: mongo:8
+    ports: ["27017:27017"]
+    volumes: ["./mongo-data:/data/db"]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:25.8
+    ports: ["8123:8123"]
+    volumes: ["./clickhouse-data:/var/lib/clickhouse"]
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    ports: ["3000:3000"]
+    environment:
+      - ADMIN_LOGIN=admin
+      - ADMIN_PASSWORD=admin123
+      - JWT_SECRET=super-secret-key
+      - MONGO_URL=mongodb://mongodb:27017/booking
+      - CLICKHOUSE_URL=http://clickhouse:8123
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      mongodb: { condition: service_healthy }
+      clickhouse: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  admin:
+    build: ./admin
+    ports: ["80:80"]
+    depends_on: [backend]
