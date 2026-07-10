@@ -37,8 +37,8 @@ services:
 
   backend-dev:
     build:
-      context: ./backend
-      dockerfile: dev.Dockerfile
+      context: .
+      dockerfile: backend/dev.Dockerfile
     ports:
       - "3000:3000"
     volumes:
@@ -62,8 +62,8 @@ services:
 
   admin-dev:
     build:
-      context: ./front/admin
-      dockerfile: dev.Dockerfile
+      context: .
+      dockerfile: front/admin/dev.Dockerfile
     ports:
       - "5173:5173"
     volumes:
