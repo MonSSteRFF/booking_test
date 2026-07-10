@@ -38,7 +38,7 @@ services:
   backend-dev:
     build:
       context: ./backend
-      dockerfile: backend/dev.Dockerfile
+      dockerfile: dev.Dockerfile
     ports:
       - "3000:3000"
     volumes:
@@ -62,12 +62,12 @@ services:
 
   admin-dev:
     build:
-      context: ./admin
+      context: ./front/admin
       dockerfile: dev.Dockerfile
     ports:
       - "5173:5173"
     volumes:
-      - ./admin:/app
+      - ./front/admin:/app
       - /app/node_modules
     environment:
       - VITE_API_BASE_URL=http://localhost:3000/api
