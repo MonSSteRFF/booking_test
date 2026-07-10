@@ -41,7 +41,7 @@ services:
       - "8080:8080"
     volumes:
       - .:/app
-    working_dir: /app/backend
+    working_dir: /app
     environment:
       - APP_ENV=docker
       - ADMIN_LOGIN=admin
@@ -54,7 +54,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: pnpm run start:dev
+    command: pnpm run dev:backend
     stdin_open: true
     tty: true
 
@@ -64,9 +64,9 @@ services:
       - "3000:3000"
     volumes:
       - .:/app
-    working_dir: /app/front/admin
+    working_dir: /app
     environment:
       - VITE_API_BASE_URL=http://localhost:8080/api
-    command: pnpm run dev -- --host
+    command: pnpm run dev:frontend
     stdin_open: true
     tty: true
