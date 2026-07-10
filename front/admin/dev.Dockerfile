@@ -5,4 +5,4 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml front/admin/package.json fr
 ENV CI=true
 RUN pnpm install --frozen-lockfile
 COPY front/admin/ ./
-EXPOSE 5173
+EXPOSE 3000
