@@ -5,4 +5,4 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml backend/package.json backen
 ENV CI=true
 RUN pnpm install --frozen-lockfile
 COPY backend/ ./
-EXPOSE 3000
+EXPOSE 8080

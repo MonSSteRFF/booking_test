@@ -40,7 +40,7 @@ services:
       context: .
       dockerfile: backend/dev.Dockerfile
     ports:
-      - "3000:3000"
+      - "8080:8080"
     volumes:
       - ./backend:/app
       - /app/node_modules
@@ -70,7 +70,7 @@ services:
       - ./front/admin:/app
       - /app/node_modules
     environment:
-      - VITE_API_BASE_URL=http://localhost:3000/api
+      - VITE_API_BASE_URL=http://localhost:8080/api
     command: pnpm run dev -- --host
     stdin_open: true
     tty: true
