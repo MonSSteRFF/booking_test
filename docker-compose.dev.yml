@@ -36,7 +36,9 @@ services:
       retries: 10
 
   backend-dev:
-    image: node:20-alpine
+    build:
+      context: .
+      dockerfile: dev.Dockerfile
     ports:
       - "8080:8080"
     volumes:
@@ -59,7 +61,9 @@ services:
     tty: true
 
   admin-dev:
-    image: node:20-alpine
+    build:
+      context: .
+      dockerfile: dev.Dockerfile
     ports:
       - "3000:3000"
     volumes:
