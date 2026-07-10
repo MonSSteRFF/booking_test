@@ -1,6 +1,9 @@
 import client from "./client";
 
 export async function login(login: string, password: string): Promise<string> {
-	const { data } = await client.post("/auth/login", { login, password });
-	return data.token;
+	const { data, error } = await client.POST("/auth/login", {
+		body: { login, password },
+	});
+	if (error) throw error;
+	return data?.token!;
 }

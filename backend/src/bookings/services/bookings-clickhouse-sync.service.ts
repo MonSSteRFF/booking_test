@@ -1,6 +1,6 @@
 import { type ClickHouseClient, createClient } from "@clickhouse/client";
 import { Injectable, type OnModuleInit } from "@nestjs/common";
-import type { ConfigService } from "@nestjs/config";
+import { ConfigService } from "@nestjs/config";
 import { InjectModel } from "@nestjs/mongoose";
 import { Cron } from "@nestjs/schedule";
 import Redis from "ioredis";
@@ -116,43 +116,74 @@ export class BookingsClickhouseSyncService implements OnModuleInit {
 		} catch (err) {
 			console.error("Booking background sync failed", err);
 		} finally {
-			await this.redis.del(lockKey);
+			// Lock expires via TTL; do NOT delete here to avoid race
+			// with another instance that may have acquired it after expiry
 		}
 	}
 
 	async fetchBookings(dto: FetchManyDto) {
-		let where = "1=1";
+		const BOOKING_FIELD_MAP: Record<string, string> = {
+			createdAt: "created_at",
+			updatedAt: "updated_at",
+			slotTitle: "slot_title",
+			slotStartsAt: "slot_starts_at",
+			slotId: "slot_mongo_id",
+			clientName: "client_name",
+			clientEmail: "client_email",
+		};
+
+		const conditions: string[] = ["1=1"];
+		const queryParams: Record<string, any> = {};
+		let paramIdx = 0;
+
 		if (dto.columnFilters) {
 			for (const f of dto.columnFilters) {
 				if (f.id === "status" && f.value) {
-					where += ` AND status = '${f.value[0]}'`;
+					const key = `p${paramIdx++}`;
+					conditions.push(`status = {${key}:String}`);
+					queryParams[key] = f.value[0];
 				} else if (f.id === "clientEmail" && f.value) {
-					where += ` AND client_email LIKE '%${f.value}%'`;
+					const key = `p${paramIdx++}`;
+					conditions.push(`client_email LIKE {${key}:String}`);
+					queryParams[key] = `%${f.value}%`;
 				}
 			}
 		}
 		if (dto.dateRange) {
 			const field =
 				dto.dateRange.field === "created_at" ? "created_at" : "slot_starts_at";
-			where += ` AND ${field} >= '${dto.dateRange.from}' AND ${field} <= '${dto.dateRange.to}'`;
+			const keyFrom = `p${paramIdx++}`;
+			const keyTo = `p${paramIdx++}`;
+			conditions.push(`${field} >= {${keyFrom}:DateTime}`);
+			conditions.push(`${field} <= {${keyTo}:DateTime}`);
+			queryParams[keyFrom] = dto.dateRange.from;
+			queryParams[keyTo] = dto.dateRange.to;
 		}
+
+		const where = conditions.join(" AND ");
 
 		const orderBy = dto.sorting?.length
 			? dto.sorting
 					.map(
 						(s) =>
-							`${s.id === "createdAt" ? "created_at" : s.id} ${s.desc ? "DESC" : "ASC"}`,
+							`${BOOKING_FIELD_MAP[s.id] || s.id} ${s.desc ? "DESC" : "ASC"}`,
 					)
 					.join(", ")
 			: "created_at DESC";
 
 		const countQuery = `SELECT count() AS total FROM booking_app.bookings FINAL WHERE ${where}`;
-		const countResult = await this.chClient.query({ query: countQuery });
+		const countResult = await this.chClient.query({
+			query: countQuery,
+			query_params: queryParams,
+		});
 		const totalCount = ((await countResult.json()) as any).data[0].total;
 
 		const offset = dto.pageIndex * dto.pageSize;
-		const dataQuery = `SELECT * FROM booking_app.bookings FINAL WHERE ${where} ORDER BY ${orderBy} LIMIT ${dto.pageSize} OFFSET ${offset}`;
-		const dataResult = await this.chClient.query({ query: dataQuery });
+		const dataQuery = `SELECT * FROM booking_app.bookings FINAL WHERE ${where} ORDER BY ${orderBy} LIMIT {limit:UInt32} OFFSET {offset:UInt32}`;
+		const dataResult = await this.chClient.query({
+			query: dataQuery,
+			query_params: { ...queryParams, limit: dto.pageSize, offset },
+		});
 		const rows = ((await dataResult.json()) as any).data;
 
 		const data = rows.map((row: any) => ({

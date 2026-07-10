@@ -59,8 +59,8 @@ export function SlotForm({ slot, onSuccess }: Props) {
 				notifications.show({ message: "Slot created", color: "green" });
 			}
 			onSuccess();
-		} catch (err: any) {
-			const fieldErrors = err.response?.data?.details?.field_errors;
+	} catch (err: any) {
+			const fieldErrors = err?.details?.field_errors;
 			if (fieldErrors) {
 				const errors: Record<string, string> = {};
 				fieldErrors.forEach((e: any) => {
@@ -68,7 +68,10 @@ export function SlotForm({ slot, onSuccess }: Props) {
 				});
 				form.setErrors(errors);
 			} else {
-				notifications.show({ message: "Save failed", color: "red" });
+				notifications.show({
+					message: err?.message || "Save failed",
+					color: "red",
+				});
 			}
 		} finally {
 			setLoading(false);

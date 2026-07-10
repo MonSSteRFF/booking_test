@@ -10,6 +10,7 @@ import {
 	Table,
 	TextInput,
 } from "@mantine/core";
+import { DatePickerInput } from "@mantine/dates";
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { IconEdit, IconEye, IconPlus, IconTrash } from "@tabler/icons-react";
@@ -27,14 +28,23 @@ export const SlotsPage = () => {
 	const [total, setTotal] = useState(0);
 	const [page, setPage] = useState(1);
 	const [pageSize, _setPageSize] = useState(10);
-	const [sortField, _setSortField] = useState("createdAt");
-	const [sortDesc, _setSortDesc] = useState(true);
+	const [sortField, setSortField] = useState("createdAt");
+	const [sortDesc, setSortDesc] = useState(true);
 	const [isActiveFilter, setIsActiveFilter] = useState<string | null>(null);
 	const [titleFilter, setTitleFilter] = useState("");
-	const [dateRange, _setDateRange] = useState<{
-		from: string;
-		to: string;
-	} | null>(null);
+	const [dateRange, setDateRange] = useState<[string | null, string | null]>([
+		null,
+		null,
+	]);
+	const handleSort = (field: string) => {
+		if (sortField === field) {
+			setSortDesc(!sortDesc);
+		} else {
+			setSortField(field);
+			setSortDesc(false);
+		}
+	};
+
 	const [opened, { open, close }] = useDisclosure(false);
 	const [editSlot, setEditSlot] = useState<Slot | null>(null);
 	const [bookModal, setBookModal] = useState<Slot | null>(null);
@@ -47,7 +57,14 @@ export const SlotsPage = () => {
 			pageSize,
 			sorting: [{ id: sortField, desc: sortDesc }],
 			columnFilters: [],
-			dateRange: dateRange ? { ...dateRange, field: "starts_at" } : undefined,
+			dateRange:
+				dateRange[0] && dateRange[1]
+					? {
+							from: dateRange[0],
+							to: dateRange[1],
+							field: "starts_at",
+						}
+					: undefined,
 		};
 		if (isActiveFilter) {
 			params.columnFilters.push({
@@ -67,7 +84,7 @@ export const SlotsPage = () => {
 			const res = await fetchSlots(params);
 			setSlots(res.data);
 			setTotal(res.totalCount);
-		} catch (err) {
+		} catch (_err) {
 			notifications.show({ message: "Failed to load slots", color: "red" });
 		}
 	}, [
@@ -89,7 +106,7 @@ export const SlotsPage = () => {
 			await deactivateSlot(id);
 			notifications.show({ message: "Slot deactivated", color: "green" });
 			loadSlots();
-		} catch (err) {
+		} catch (_err) {
 			notifications.show({ message: "Failed to deactivate", color: "red" });
 		}
 	};
@@ -101,9 +118,11 @@ export const SlotsPage = () => {
 			notifications.show({ message: "Booking created", color: "green" });
 			setBookModal(null);
 			loadSlots();
-		} catch (err: any) {
-			const msg = err.response?.data?.message || "Booking failed";
-			notifications.show({ message: msg, color: "red" });
+	} catch (err: any) {
+			notifications.show({
+				message: err?.message || "Booking failed",
+				color: "red",
+			});
 		}
 	};
 
@@ -177,6 +196,13 @@ export const SlotsPage = () => {
 					value={isActiveFilter}
 					onChange={(v) => setIsActiveFilter(v)}
 				/>
+				<DatePickerInput
+					type="range"
+					placeholder="Pick dates range"
+					value={dateRange}
+					onChange={setDateRange}
+					clearable
+				/>
 				<Button
 					leftSection={<IconPlus size={16} />}
 					onClick={() => {
@@ -190,11 +216,40 @@ export const SlotsPage = () => {
 			<Table striped>
 				<Table.Thead>
 					<Table.Tr>
-						<Table.Th>Title</Table.Th>
-						<Table.Th>Starts At</Table.Th>
-						<Table.Th>Capacity</Table.Th>
-						<Table.Th>Booked</Table.Th>
-						<Table.Th>Status</Table.Th>
+						<Table.Th
+							onClick={() => handleSort("title")}
+							style={{ cursor: "pointer" }}
+						>
+							Title {sortField === "title" ? (sortDesc ? "↓" : "↑") : ""}
+						</Table.Th>
+						<Table.Th
+							onClick={() => handleSort("startsAt")}
+							style={{ cursor: "pointer" }}
+						>
+							Starts At{" "}
+							{sortField === "startsAt" ? (sortDesc ? "↓" : "↑") : ""}
+						</Table.Th>
+						<Table.Th
+							onClick={() => handleSort("capacity")}
+							style={{ cursor: "pointer" }}
+						>
+							Capacity{" "}
+							{sortField === "capacity" ? (sortDesc ? "↓" : "↑") : ""}
+						</Table.Th>
+						<Table.Th
+							onClick={() => handleSort("bookedCount")}
+							style={{ cursor: "pointer" }}
+						>
+							Booked{" "}
+							{sortField === "bookedCount" ? (sortDesc ? "↓" : "↑") : ""}
+						</Table.Th>
+						<Table.Th
+							onClick={() => handleSort("isActive")}
+							style={{ cursor: "pointer" }}
+						>
+							Status{" "}
+							{sortField === "isActive" ? (sortDesc ? "↓" : "↑") : ""}
+						</Table.Th>
 						<Table.Th>Actions</Table.Th>
 					</Table.Tr>
 				</Table.Thead>

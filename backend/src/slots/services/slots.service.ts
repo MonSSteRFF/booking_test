@@ -9,10 +9,12 @@ import {
 	Booking,
 	type BookingDocument,
 } from "../../bookings/schemas/booking.schema";
-import type { BookingsClickhouseSyncService } from "../../bookings/services/bookings-clickhouse-sync.service";
+import { BookingsClickhouseSyncService } from "../../bookings/services/bookings-clickhouse-sync.service";
+import type { CreateSlotDto } from "../dto/create-slot.dto";
 import type { FetchManyDto } from "../dto/fetch-many.dto";
+import type { UpdateSlotDto } from "../dto/update-slot.dto";
 import { Slot, type SlotDocument } from "../schemas/slot.schema";
-import type { SlotsClickhouseSyncService } from "./slots-clickhouse-sync.service";
+import { SlotsClickhouseSyncService } from "./slots-clickhouse-sync.service";
 
 @Injectable()
 export class SlotsService {
@@ -23,7 +25,53 @@ export class SlotsService {
 		private bookingSyncService: BookingsClickhouseSyncService,
 	) {}
 
-	// ... create, update, deactivate без изменений
+	async findById(id: string) {
+		return this.slotModel.findById(id);
+	}
+
+	async create(dto: CreateSlotDto) {
+		const slot = new this.slotModel({
+			title: dto.title,
+			startsAt: new Date(dto.startsAt),
+			capacity: dto.capacity,
+		});
+		const saved = await slot.save();
+		await this.syncService.syncOnWrite(saved).catch(() => {});
+		return saved;
+	}
+
+	async update(id: string, dto: UpdateSlotDto) {
+		const slot = await this.slotModel.findById(id);
+		if (!slot) throw new NotFoundException("Resource not found");
+
+		if (dto.capacity !== undefined && dto.capacity < slot.bookedCount) {
+			throw new ConflictException({
+				statusCode: 409,
+				message: "New capacity is below current bookedCount",
+				details: { code: "CAPACITY_BELOW_BOOKED" },
+			});
+		}
+
+		if (dto.title !== undefined) slot.title = dto.title;
+		if (dto.startsAt !== undefined) slot.startsAt = new Date(dto.startsAt);
+		if (dto.capacity !== undefined) slot.capacity = dto.capacity;
+		slot.chSyncPending = true;
+
+		const updated = await slot.save();
+		await this.syncService.syncOnWrite(updated).catch(() => {});
+		return updated;
+	}
+
+	async deactivate(id: string) {
+		const slot = await this.slotModel.findByIdAndUpdate(
+			id,
+			{ isActive: false, chSyncPending: true },
+			{ new: true },
+		);
+		if (!slot) throw new NotFoundException("Resource not found");
+		await this.syncService.syncOnWrite(slot).catch(() => {});
+		return slot;
+	}
 
 	async bookSlot(
 		slotId: string,
@@ -31,13 +79,7 @@ export class SlotsService {
 	) {
 		const slot = await this.slotModel.findById(slotId);
 		if (!slot) throw new NotFoundException("Slot not found");
-		if (!slot.isActive) {
-			throw new ConflictException({
-				statusCode: 409,
-				message: "Slot is inactive",
-				details: { code: "SLOT_INACTIVE" },
-			});
-		}
+
 		if (slot.bookedCount >= slot.capacity) {
 			throw new ConflictException({
 				statusCode: 409,
@@ -45,6 +87,15 @@ export class SlotsService {
 				details: { code: "SLOT_FULL" },
 			});
 		}
+
+		if (!slot.isActive) {
+			throw new ConflictException({
+				statusCode: 409,
+				message: "Slot is inactive",
+				details: { code: "SLOT_INACTIVE" },
+			});
+		}
+
 		const existing = await this.bookingModel.findOne({
 			slotId,
 			clientEmail: dto.clientEmail.toLowerCase(),
@@ -53,7 +104,7 @@ export class SlotsService {
 		if (existing) {
 			throw new ConflictException({
 				statusCode: 409,
-				message: "Already booked",
+				message: "This email already has an active booking for this slot",
 				details: { code: "ALREADY_BOOKED" },
 			});
 		}
@@ -61,13 +112,34 @@ export class SlotsService {
 		const session = await this.slotModel.db.startSession();
 		session.startTransaction();
 		try {
-			const updatedSlot = await this.slotModel.findByIdAndUpdate(
-				slotId,
+			const updatedSlot = await this.slotModel.findOneAndUpdate(
+				{
+					_id: slotId,
+					$expr: { $lt: ["$bookedCount", "$capacity"] },
+				},
 				{ $inc: { bookedCount: 1 }, chSyncPending: true },
 				{ new: true, session },
 			);
+
+			if (!updatedSlot) {
+				await session.abortTransaction();
+				const current = await this.slotModel.findById(slotId);
+				if (current && !current.isActive) {
+					throw new ConflictException({
+						statusCode: 409,
+						message: "Slot is inactive",
+						details: { code: "SLOT_INACTIVE" },
+					});
+				}
+				throw new ConflictException({
+					statusCode: 409,
+					message: "Slot is full",
+					details: { code: "SLOT_FULL" },
+				});
+			}
+
 			const booking = new this.bookingModel({
-				slotId: slot._id,
+				slotId,
 				slotTitle: slot.title,
 				slotStartsAt: slot.startsAt,
 				clientName: dto.clientName,
@@ -77,12 +149,14 @@ export class SlotsService {
 			await booking.save({ session });
 			await session.commitTransaction();
 
-			// sync-on-write для слота и брони
-			void this.syncService.syncOnWrite(updatedSlot!);
-			void this.bookingSyncService.syncOnWrite(booking);
+			await Promise.all([
+				this.syncService.syncOnWrite(updatedSlot).catch(() => {}),
+				this.bookingSyncService.syncOnWrite(booking).catch(() => {}),
+			]);
+
 			return booking;
 		} catch (err) {
-			await session.abortTransaction();
+			await session.abortTransaction().catch(() => {});
 			throw err;
 		} finally {
 			session.endSession();

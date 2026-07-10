@@ -7,21 +7,35 @@ import {
 	Post,
 	UseGuards,
 } from "@nestjs/common";
+import {
+	ApiBearerAuth,
+	ApiOkResponse,
+	ApiOperation,
+	ApiTags,
+} from "@nestjs/swagger";
+import { BookingsListResponse } from "../../api/response.dto";
 import { JwtAuthGuard } from "../../auth/jwt-auth.guard";
-import type { FetchManyDto } from "../../slots/dto/fetch-many.dto"; // можно сделать общий
-import type { BookingsService } from "../services/bookings.service";
+import type { FetchManyDto } from "../../slots/dto/fetch-many.dto";
+import { Booking } from "../schemas/booking.schema";
+import { BookingsService } from "../services/bookings.service";
 
+@ApiTags("Bookings")
+@ApiBearerAuth()
 @Controller("bookings")
 @UseGuards(JwtAuthGuard)
 export class BookingsController {
 	constructor(private readonly bookingsService: BookingsService) {}
 
 	@Post("fetch/many")
+	@ApiOperation({ summary: "Get paginated list of bookings (from ClickHouse)" })
+	@ApiOkResponse({ type: BookingsListResponse })
 	async fetchMany(@Body() dto: FetchManyDto) {
 		return this.bookingsService.fetchMany(dto);
 	}
 
 	@Get("fetch/one/:id")
+	@ApiOperation({ summary: "Get booking by ID (from Mongo)" })
+	@ApiOkResponse({ type: Booking })
 	async fetchOne(@Param("id") id: string) {
 		const booking = await this.bookingsService.findById(id);
 		if (!booking) throw new NotFoundException("Resource not found");
@@ -29,6 +43,8 @@ export class BookingsController {
 	}
 
 	@Post(":id/cancel")
+	@ApiOperation({ summary: "Cancel booking" })
+	@ApiOkResponse({ type: Booking })
 	async cancel(@Param("id") id: string) {
 		return this.bookingsService.cancel(id);
 	}

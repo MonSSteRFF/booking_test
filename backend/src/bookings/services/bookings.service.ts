@@ -1,10 +1,16 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import {
+	forwardRef,
+	Inject,
+	Injectable,
+	NotFoundException,
+} from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import type { Model } from "mongoose";
 import type { FetchManyDto } from "../../slots/dto/fetch-many.dto";
 import { Slot, type SlotDocument } from "../../slots/schemas/slot.schema";
+import { SlotsClickhouseSyncService } from "../../slots/services/slots-clickhouse-sync.service";
 import { Booking, type BookingDocument } from "../schemas/booking.schema";
-import type { BookingsClickhouseSyncService } from "./bookings-clickhouse-sync.service";
+import { BookingsClickhouseSyncService } from "./bookings-clickhouse-sync.service";
 
 @Injectable()
 export class BookingsService {
@@ -12,10 +18,12 @@ export class BookingsService {
 		@InjectModel(Booking.name) private bookingModel: Model<BookingDocument>,
 		@InjectModel(Slot.name) private slotModel: Model<SlotDocument>,
 		private syncService: BookingsClickhouseSyncService,
+		@Inject(forwardRef(() => SlotsClickhouseSyncService))
+		private slotsSyncService: SlotsClickhouseSyncService,
 	) {}
 
 	async findById(id: string) {
-		return this.bookingModel.findById(id).lean();
+		return this.bookingModel.findById(id);
 	}
 
 	async cancel(id: string) {
@@ -23,11 +31,9 @@ export class BookingsService {
 		if (!booking) throw new NotFoundException("Resource not found");
 
 		if (booking.status === "CANCELLED") {
-			// идемпотентность: возвращаем текущее состояние
-			return booking;
+			return booking; // идемпотентность
 		}
 
-		// Атомарная операция: обновляем статус и декрементируем bookedCount слота
 		const session = await this.bookingModel.db.startSession();
 		session.startTransaction();
 		try {
@@ -35,18 +41,20 @@ export class BookingsService {
 			booking.chSyncPending = true;
 			await booking.save({ session });
 
-			await this.slotModel.findByIdAndUpdate(
+			const updatedSlot = await this.slotModel.findByIdAndUpdate(
 				booking.slotId,
 				{ $inc: { bookedCount: -1 }, chSyncPending: true },
-				{ session },
+				{ new: true, session },
 			);
 
 			await session.commitTransaction();
 
-			// синхронизируем оба изменения в CH (fire-and-forget)
-			void this.syncService.syncOnWrite(booking);
-			// синхронизацию слота запустит слотовый синк-сервис, но можно передать событием
-			// Для простоты вызовем напрямую, если имеем доступ (можно через EventEmitter)
+			await Promise.all([
+				this.syncService.syncOnWrite(booking).catch(() => {}),
+				...(updatedSlot
+					? [this.slotsSyncService.syncOnWrite(updatedSlot).catch(() => {})]
+					: []),
+			]);
 		} catch (err) {
 			await session.abortTransaction();
 			throw err;

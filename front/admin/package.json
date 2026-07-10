@@ -1,35 +1,44 @@
 {
-  "name": "admin",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "@mantine/core": "^9.4.1",
-    "@mantine/dates": "^9.4.1",
-    "@mantine/form": "^9.4.1",
-    "@mantine/hooks": "^9.4.1",
-    "@mantine/notifications": "^9.4.1",
-    "@tabler/icons-react": "^3.44.0",
-    "axios": "^1.18.1",
-    "dayjs": "^1.11.21",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7",
-    "react-router-dom": "^7.18.1"
-  },
-  "devDependencies": {
-    "@types/node": "^24.13.2",
-    "@types/react": "^19.2.17",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.3",
-    "globals": "^17.7.0",
-    "postcss": "^8.5.16",
-    "postcss-preset-mantine": "^1.18.0",
-    "typescript": "~6.0.2",
-    "vite": "^8.1.1"
-  }
+	"name": "admin",
+	"private": true,
+	"version": "0.0.0",
+	"type": "module",
+	"scripts": {
+		"dev": "vite",
+		"build": "tsc -b && vite build",
+		"preview": "vite preview",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"typecheck": "tsc -b"
+	},
+	"dependencies": {
+		"@mantine/core": "^9.4.1",
+		"@mantine/dates": "^9.4.1",
+		"@mantine/form": "^9.4.1",
+		"@mantine/hooks": "^9.4.1",
+		"@mantine/notifications": "^9.4.1",
+		"@tabler/icons-react": "^3.44.0",
+		"dayjs": "^1.11.21",
+		"openapi-fetch": "^0.17.0",
+		"react": "^19.2.7",
+		"react-dom": "^19.2.7",
+		"react-router-dom": "^7.18.1"
+	},
+	"devDependencies": {
+		"@testing-library/jest-dom": "^6.9.1",
+		"@testing-library/react": "^16.3.2",
+		"@testing-library/user-event": "^14.6.1",
+		"@types/node": "^24.13.2",
+		"@types/react": "^19.2.17",
+		"@types/react-dom": "^19.2.3",
+		"@vitejs/plugin-react": "^6.0.3",
+		"globals": "^17.7.0",
+		"jsdom": "^29.1.1",
+		"openapi-typescript": "^7.13.0",
+		"postcss": "^8.5.16",
+		"postcss-preset-mantine": "^1.18.0",
+		"typescript": "~6.0.2",
+		"vite": "^8.1.1",
+		"vitest": "^4.1.10"
+	}
 }

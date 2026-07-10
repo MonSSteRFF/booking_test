@@ -1,4 +1,5 @@
 import { Badge, Group, Pagination, Select, Table } from "@mantine/core";
+import { DatePickerInput } from "@mantine/dates";
 import { notifications } from "@mantine/notifications";
 import { IconEye, IconX } from "@tabler/icons-react";
 import dayjs from "dayjs";
@@ -14,6 +15,10 @@ export const BookingsPage = () => {
 	const [page, setPage] = useState(1);
 	const pageSize = 20;
 	const [statusFilter, setStatusFilter] = useState<string | null>(null);
+	const [dateRange, setDateRange] = useState<[string | null, string | null]>([
+		null,
+		null,
+	]);
 
 	const load = useCallback(async () => {
 		const params: FetchManyParams = {
@@ -21,6 +26,14 @@ export const BookingsPage = () => {
 			pageSize,
 			sorting: [{ id: "createdAt", desc: true }],
 			columnFilters: [],
+			dateRange:
+				dateRange[0] && dateRange[1]
+					? {
+							from: dateRange[0],
+							to: dateRange[1],
+							field: "created_at",
+						}
+					: undefined,
 		};
 		if (statusFilter) {
 			params.columnFilters.push({
@@ -37,7 +50,7 @@ export const BookingsPage = () => {
 			console.error(err);
 			notifications.show({ message: "Failed to load bookings", color: "red" });
 		}
-	}, [page, statusFilter]);
+	}, [page, statusFilter, dateRange]);
 
 	useEffect(() => {
 		load();
@@ -97,6 +110,13 @@ export const BookingsPage = () => {
 					clearable
 					value={statusFilter}
 					onChange={(v) => setStatusFilter(v)}
+				/>
+				<DatePickerInput
+					type="range"
+					placeholder="Pick dates range"
+					value={dateRange}
+					onChange={setDateRange}
+					clearable
 				/>
 			</Group>
 			<Table striped>

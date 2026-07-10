@@ -1,0 +1,42 @@
+name: "booking_test"
+
+services:
+  mongodb:
+    image: mongo:8
+    ports: ["27017:27017"]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:25.8
+    ports: ["8123:8123"]
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend-test:
+    build:
+      context: ./backend
+      dockerfile: test.Dockerfile
+    environment:
+      - JWT_SECRET=test-secret
+      - ADMIN_LOGIN=admin
+      - ADMIN_PASSWORD=admin123
+    depends_on:
+      mongodb: { condition: service_healthy }
+      clickhouse: { condition: service_healthy }
+      redis: { condition: service_healthy }

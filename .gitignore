@@ -5,3 +5,4 @@ dist/
 mongo-data/
 clickhouse-data/
 .idea
+TEST_TASK_SLOT_BOOKING_v3.0.md

@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common";
+import { forwardRef, Module } from "@nestjs/common";
 import { MongooseModule } from "@nestjs/mongoose";
 import { BookingsModule } from "../bookings/bookings.module";
 import { SlotsController } from "./controllers/slots.controller";
@@ -9,10 +9,10 @@ import { SlotsClickhouseSyncService } from "./services/slots-clickhouse-sync.ser
 @Module({
 	imports: [
 		MongooseModule.forFeature([{ name: Slot.name, schema: SlotSchema }]),
-		BookingsModule,
+		forwardRef(() => BookingsModule),
 	],
 	controllers: [SlotsController],
 	providers: [SlotsService, SlotsClickhouseSyncService],
-	exports: [SlotsService],
+	exports: [SlotsService, SlotsClickhouseSyncService],
 })
 export class SlotsModule {}

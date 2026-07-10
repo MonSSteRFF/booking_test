@@ -1,9 +1,26 @@
 {
-  "name": "full_test",
-  "type": "module",
-  "scripts": {},
-  "devDependencies": {
-    "@biomejs/biome": "^2.5.3",
-    "typescript": "^7.0.2"
-  }
+	"name": "full_test",
+	"type": "module",
+	"private": true,
+	"scripts": {
+		"lint": "biome check --write .",
+		"format": "biome format --write .",
+		"dev:services": "docker compose -f docker-compose.dev.yml up -d mongodb clickhouse redis",
+		"dev:services:stop": "docker compose -f docker-compose.dev.yml down",
+		"dev": "docker compose -f docker-compose.dev.yml up -d --build",
+		"dev:logs": "docker compose -f docker-compose.dev.yml logs -f",
+		"dev:backend": "pnpm --filter backend start:dev",
+		"dev:frontend": "pnpm --filter admin dev",
+		"build:backend": "pnpm --filter backend build",
+		"build:frontend": "pnpm --filter admin build",
+		"build": "pnpm run build:backend && pnpm run build:frontend",
+		"test": "pnpm -r run test",
+		"start:prod": "docker compose up -d --build",
+		"start:prod:logs": "docker compose logs -f",
+		"stop": "docker compose -f docker-compose.dev.yml down; docker compose down"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.5.3",
+		"typescript": "^7.0.2"
+	}
 }

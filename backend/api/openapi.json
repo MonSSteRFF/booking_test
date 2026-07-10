@@ -1,0 +1,691 @@
+{
+	"openapi": "3.0.0",
+	"paths": {
+		"/slots/fetch/many": {
+			"post": {
+				"operationId": "SlotsController_fetchMany",
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/FetchManyDto"
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/SlotsListResponse"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"bearer": []
+					}
+				],
+				"summary": "Get paginated list of slots (from ClickHouse)",
+				"tags": ["Slots"]
+			}
+		},
+		"/slots/fetch/one/{id}": {
+			"get": {
+				"operationId": "SlotsController_fetchOne",
+				"parameters": [
+					{
+						"name": "id",
+						"required": true,
+						"in": "path",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Slot"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"bearer": []
+					}
+				],
+				"summary": "Get slot by ID (from Mongo)",
+				"tags": ["Slots"]
+			}
+		},
+		"/slots": {
+			"post": {
+				"operationId": "SlotsController_create",
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/CreateSlotDto"
+							}
+						}
+					}
+				},
+				"responses": {
+					"201": {
+						"description": "",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Slot"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"bearer": []
+					}
+				],
+				"summary": "Create a new slot",
+				"tags": ["Slots"]
+			}
+		},
+		"/slots/{id}": {
+			"patch": {
+				"operationId": "SlotsController_update",
+				"parameters": [
+					{
+						"name": "id",
+						"required": true,
+						"in": "path",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UpdateSlotDto"
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Slot"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"bearer": []
+					}
+				],
+				"summary": "Update slot",
+				"tags": ["Slots"]
+			}
+		},
+		"/slots/{id}/deactivate": {
+			"post": {
+				"operationId": "SlotsController_deactivate",
+				"parameters": [
+					{
+						"name": "id",
+						"required": true,
+						"in": "path",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Slot"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"bearer": []
+					}
+				],
+				"summary": "Deactivate slot",
+				"tags": ["Slots"]
+			}
+		},
+		"/slots/{id}/book": {
+			"post": {
+				"operationId": "SlotsController_book",
+				"parameters": [
+					{
+						"name": "id",
+						"required": true,
+						"in": "path",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/CreateBookingDto"
+							}
+						}
+					}
+				},
+				"responses": {
+					"201": {
+						"description": "",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Booking"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"bearer": []
+					}
+				],
+				"summary": "Book a slot (create booking)",
+				"tags": ["Slots"]
+			}
+		},
+		"/bookings/fetch/many": {
+			"post": {
+				"operationId": "BookingsController_fetchMany",
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/FetchManyDto"
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/BookingsListResponse"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"bearer": []
+					}
+				],
+				"summary": "Get paginated list of bookings (from ClickHouse)",
+				"tags": ["Bookings"]
+			}
+		},
+		"/bookings/fetch/one/{id}": {
+			"get": {
+				"operationId": "BookingsController_fetchOne",
+				"parameters": [
+					{
+						"name": "id",
+						"required": true,
+						"in": "path",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Booking"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"bearer": []
+					}
+				],
+				"summary": "Get booking by ID (from Mongo)",
+				"tags": ["Bookings"]
+			}
+		},
+		"/bookings/{id}/cancel": {
+			"post": {
+				"operationId": "BookingsController_cancel",
+				"parameters": [
+					{
+						"name": "id",
+						"required": true,
+						"in": "path",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Booking"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"bearer": []
+					}
+				],
+				"summary": "Cancel booking",
+				"tags": ["Bookings"]
+			}
+		},
+		"/auth/login": {
+			"post": {
+				"operationId": "AuthController_login",
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LoginDto"
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "JWT token",
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"token": {
+											"type": "string"
+										}
+									}
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Invalid credentials"
+					}
+				},
+				"summary": "Login and get JWT token",
+				"tags": ["Auth"]
+			}
+		}
+	},
+	"info": {
+		"title": "Slot Booking API",
+		"description": "Мини-система бронирования слотов (CQRS: Mongo + ClickHouse)",
+		"version": "3.0",
+		"contact": {}
+	},
+	"tags": [],
+	"servers": [],
+	"components": {
+		"securitySchemes": {
+			"bearer": {
+				"scheme": "bearer",
+				"bearerFormat": "JWT",
+				"type": "http"
+			}
+		},
+		"schemas": {
+			"SortingDto": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"description": "Field to sort by"
+					},
+					"desc": {
+						"type": "boolean",
+						"description": "Sort direction"
+					}
+				},
+				"required": ["id"]
+			},
+			"ColumnFilterDto": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"description": "Filter field ID"
+					},
+					"value": {
+						"type": "object",
+						"description": "Filter value(s)"
+					},
+					"filterFn": {
+						"type": "string",
+						"description": "Filter function (in, contains)"
+					}
+				},
+				"required": ["id", "value", "filterFn"]
+			},
+			"DateRangeDto": {
+				"type": "object",
+				"properties": {
+					"from": {
+						"type": "string",
+						"description": "Start date (ISO 8601)"
+					},
+					"to": {
+						"type": "string",
+						"description": "End date (ISO 8601)"
+					},
+					"field": {
+						"type": "string",
+						"description": "Date field name"
+					},
+					"timezone": {
+						"type": "string",
+						"description": "Timezone"
+					}
+				},
+				"required": ["from", "to", "field"]
+			},
+			"FetchManyDto": {
+				"type": "object",
+				"properties": {
+					"pageIndex": {
+						"type": "number",
+						"description": "Page index (0-based)"
+					},
+					"pageSize": {
+						"type": "number",
+						"description": "Page size"
+					},
+					"sorting": {
+						"description": "Sorting configuration",
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/SortingDto"
+						}
+					},
+					"columnFilters": {
+						"description": "Column filters",
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/ColumnFilterDto"
+						}
+					},
+					"dateRange": {
+						"description": "Date range filter",
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/DateRangeDto"
+							}
+						]
+					}
+				},
+				"required": ["pageIndex", "pageSize", "sorting", "columnFilters"]
+			},
+			"Slot": {
+				"type": "object",
+				"properties": {
+					"mongoId": {
+						"type": "string",
+						"description": "MongoDB document ID"
+					},
+					"title": {
+						"type": "string",
+						"description": "Slot title",
+						"maxLength": 200
+					},
+					"startsAt": {
+						"format": "date-time",
+						"type": "string",
+						"description": "Slot start time"
+					},
+					"capacity": {
+						"type": "number",
+						"description": "Maximum capacity",
+						"minimum": 1,
+						"maximum": 1000
+					},
+					"bookedCount": {
+						"type": "number",
+						"description": "Current booked count",
+						"minimum": 0
+					},
+					"isActive": {
+						"type": "boolean",
+						"description": "Whether slot is active"
+					},
+					"createdAt": {
+						"format": "date-time",
+						"type": "string",
+						"description": "Creation timestamp"
+					},
+					"updatedAt": {
+						"format": "date-time",
+						"type": "string",
+						"description": "Last update timestamp"
+					}
+				},
+				"required": [
+					"mongoId",
+					"title",
+					"startsAt",
+					"capacity",
+					"bookedCount",
+					"isActive",
+					"createdAt",
+					"updatedAt"
+				]
+			},
+			"SlotsListResponse": {
+				"type": "object",
+				"properties": {
+					"data": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/Slot"
+						}
+					},
+					"totalCount": {
+						"type": "number"
+					}
+				},
+				"required": ["data", "totalCount"]
+			},
+			"CreateSlotDto": {
+				"type": "object",
+				"properties": {
+					"title": {
+						"type": "string",
+						"description": "Slot title",
+						"maxLength": 200
+					},
+					"startsAt": {
+						"type": "string",
+						"description": "Slot start time (ISO 8601)"
+					},
+					"capacity": {
+						"type": "number",
+						"description": "Maximum capacity",
+						"minimum": 1,
+						"maximum": 1000
+					}
+				},
+				"required": ["title", "startsAt", "capacity"]
+			},
+			"UpdateSlotDto": {
+				"type": "object",
+				"properties": {
+					"title": {
+						"type": "string",
+						"description": "Slot title",
+						"maxLength": 200
+					},
+					"startsAt": {
+						"type": "string",
+						"description": "Slot start time (ISO 8601)"
+					},
+					"capacity": {
+						"type": "number",
+						"description": "Maximum capacity",
+						"minimum": 1,
+						"maximum": 1000
+					}
+				}
+			},
+			"CreateBookingDto": {
+				"type": "object",
+				"properties": {
+					"clientName": {
+						"type": "string",
+						"description": "Client name",
+						"maxLength": 200
+					},
+					"clientEmail": {
+						"type": "string",
+						"description": "Client email"
+					}
+				},
+				"required": ["clientName", "clientEmail"]
+			},
+			"Booking": {
+				"type": "object",
+				"properties": {
+					"mongoId": {
+						"type": "string",
+						"description": "MongoDB document ID"
+					},
+					"slotId": {
+						"type": "string",
+						"description": "Slot ID reference"
+					},
+					"slotTitle": {
+						"type": "string",
+						"description": "Denormalized slot title at booking time"
+					},
+					"slotStartsAt": {
+						"format": "date-time",
+						"type": "string",
+						"description": "Denormalized slot start time at booking time"
+					},
+					"clientName": {
+						"type": "string",
+						"description": "Client name",
+						"maxLength": 200
+					},
+					"clientEmail": {
+						"type": "string",
+						"description": "Client email (lowercased)"
+					},
+					"status": {
+						"type": "string",
+						"description": "Booking status",
+						"enum": ["ACTIVE", "CANCELLED"]
+					},
+					"createdAt": {
+						"format": "date-time",
+						"type": "string",
+						"description": "Creation timestamp"
+					},
+					"updatedAt": {
+						"format": "date-time",
+						"type": "string",
+						"description": "Last update timestamp"
+					}
+				},
+				"required": [
+					"mongoId",
+					"slotId",
+					"slotTitle",
+					"slotStartsAt",
+					"clientName",
+					"clientEmail",
+					"status",
+					"createdAt",
+					"updatedAt"
+				]
+			},
+			"BookingsListResponse": {
+				"type": "object",
+				"properties": {
+					"data": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/Booking"
+						}
+					},
+					"totalCount": {
+						"type": "number"
+					}
+				},
+				"required": ["data", "totalCount"]
+			},
+			"LoginDto": {
+				"type": "object",
+				"properties": {
+					"login": {
+						"type": "string",
+						"description": "Admin login"
+					},
+					"password": {
+						"type": "string",
+						"description": "Admin password"
+					}
+				},
+				"required": ["login", "password"]
+			}
+		}
+	}
+}

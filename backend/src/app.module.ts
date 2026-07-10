@@ -13,7 +13,6 @@ function loadConfig() {
 			return require("./config/docker.config").default;
 		case "prod":
 			return require("./config/prod.config").default;
-		case "dev":
 		default:
 			return require("./config/dev.config").default;
 	}
