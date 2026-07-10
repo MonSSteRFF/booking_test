@@ -36,14 +36,12 @@ services:
       retries: 10
 
   backend-dev:
-    build:
-      context: .
-      dockerfile: backend/dev.Dockerfile
+    image: node:20-alpine
     ports:
       - "8080:8080"
     volumes:
-      - ./backend:/app
-      - /app/node_modules
+      - .:/app
+    working_dir: /app/backend
     environment:
       - APP_ENV=docker
       - ADMIN_LOGIN=admin
@@ -61,14 +59,12 @@ services:
     tty: true
 
   admin-dev:
-    build:
-      context: .
-      dockerfile: front/admin/dev.Dockerfile
+    image: node:20-alpine
     ports:
       - "3000:3000"
     volumes:
-      - ./front/admin:/app
-      - /app/node_modules
+      - .:/app
+    working_dir: /app/front/admin
     environment:
       - VITE_API_BASE_URL=http://localhost:8080/api
     command: pnpm run dev -- --host
