@@ -1,11 +1,12 @@
 FROM node:20-alpine
+RUN corepack enable && corepack prepare pnpm@latest --activate
 WORKDIR /app
 
-COPY package.json package-lock.json ./
-RUN npm ci
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
 COPY . .
 
-RUN npx tsc --noEmit
+RUN pnpm exec tsc --noEmit
 
-CMD ["npm", "test"]
+CMD ["pnpm", "test"]
