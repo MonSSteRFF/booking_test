@@ -1,34 +1,29 @@
-import {
-	Button,
-	Container,
-	Paper,
-	PasswordInput,
-	TextInput,
-	Title,
-} from "@mantine/core";
+import { Button, Container, Paper, PasswordInput, TextInput, Title } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { login as apiLogin } from "../api/auth";
-import { useAuth } from "../context/AuthContext";
+import React, { useState } from "react";
+import { authApi } from "@/api";
+import { getErrorMessage } from "@/api/errors";
+import { useAuth } from "@/app/Providers/AuthContext";
+import { paths } from "@/app/Router/Paths";
+import { useNavigateParams } from "@/app/Router/useNavigateParams";
 
 export const LoginPage = () => {
 	const { login } = useAuth();
-	const navigate = useNavigate();
+	const navigate = useNavigateParams();
 	const [loading, setLoading] = useState(false);
 	const [form, setForm] = useState({ login: "", password: "" });
 
-	const handleSubmit = async (e: React.FormEvent) => {
+	const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
 		e.preventDefault();
 		setLoading(true);
 		try {
-			const token = await apiLogin(form.login, form.password);
+			const token = await authApi.login(form.login, form.password);
 			login(token);
-			navigate("/slots");
-		} catch (err: any) {
+			navigate(paths.SLOTS_PAGE);
+		} catch (err) {
 			notifications.show({
 				title: "Login failed",
-				message: err.response?.data?.message || "Invalid credentials",
+				message: getErrorMessage(err),
 				color: "red",
 			});
 		} finally {
@@ -53,9 +48,7 @@ export const LoginPage = () => {
 						placeholder="Your password"
 						mt="md"
 						value={form.password}
-						onChange={(e) =>
-							setForm({ ...form, password: e.currentTarget.value })
-						}
+						onChange={(e) => setForm({ ...form, password: e.currentTarget.value })}
 						required
 					/>
 					<Button fullWidth mt="xl" type="submit" loading={loading}>

@@ -13,6 +13,6 @@ import { SlotsClickhouseSyncService } from "./services/slots-clickhouse-sync.ser
 	],
 	controllers: [SlotsController],
 	providers: [SlotsService, SlotsClickhouseSyncService],
-	exports: [SlotsService, SlotsClickhouseSyncService],
+	exports: [SlotsService, SlotsClickhouseSyncService, MongooseModule],
 })
 export class SlotsModule {}

@@ -9,7 +9,8 @@
 		"preview": "vite preview",
 		"test": "vitest run",
 		"test:watch": "vitest",
-		"typecheck": "tsc -b"
+		"typecheck": "tsc -b",
+		"generate:types": "openapi-typescript ../../backend/api/openapi.json -o src/api/internal-schema.ts"
 	},
 	"dependencies": {
 		"@mantine/core": "^9.4.1",
@@ -22,7 +23,7 @@
 		"openapi-fetch": "^0.17.0",
 		"react": "^19.2.7",
 		"react-dom": "^19.2.7",
-		"react-router-dom": "^7.18.1"
+		"wouter": "^3.10.0"
 	},
 	"devDependencies": {
 		"@testing-library/jest-dom": "^6.9.1",

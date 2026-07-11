@@ -1,21 +1,8 @@
-import {
-	Body,
-	Controller,
-	Get,
-	NotFoundException,
-	Param,
-	Post,
-	UseGuards,
-} from "@nestjs/common";
-import {
-	ApiBearerAuth,
-	ApiOkResponse,
-	ApiOperation,
-	ApiTags,
-} from "@nestjs/swagger";
+import { Body, Controller, Get, NotFoundException, Param, Post, UseGuards } from "@nestjs/common";
+import { ApiBearerAuth, ApiBody, ApiOkResponse, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { BookingsListResponse } from "../../api/response.dto";
 import { JwtAuthGuard } from "../../auth/jwt-auth.guard";
-import type { FetchManyDto } from "../../slots/dto/fetch-many.dto";
+import { FetchManyBookingsDto } from "../dto/fetch-many-bookings.dto";
 import { Booking } from "../schemas/booking.schema";
 import { BookingsService } from "../services/bookings.service";
 
@@ -28,8 +15,9 @@ export class BookingsController {
 
 	@Post("fetch/many")
 	@ApiOperation({ summary: "Get paginated list of bookings (from ClickHouse)" })
+	@ApiBody({ type: FetchManyBookingsDto })
 	@ApiOkResponse({ type: BookingsListResponse })
-	async fetchMany(@Body() dto: FetchManyDto) {
+	async fetchMany(@Body() dto: FetchManyBookingsDto) {
 		return this.bookingsService.fetchMany(dto);
 	}
 

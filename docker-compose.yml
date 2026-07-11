@@ -15,6 +15,10 @@ services:
     image: clickhouse/clickhouse-server:25.8
     ports: ["8123:8123"]
     volumes: ["./clickhouse-data:/var/lib/clickhouse"]
+    environment:
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: clickhouse
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
       interval: 5s
@@ -39,6 +43,8 @@ services:
       - JWT_SECRET=super-secret-key
       - MONGO_URL=mongodb://mongodb:27017/booking
       - CLICKHOUSE_URL=http://clickhouse:8123
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_PASSWORD=clickhouse
       - REDIS_URL=redis://redis:6379
     depends_on:
       mongodb: { condition: service_healthy }

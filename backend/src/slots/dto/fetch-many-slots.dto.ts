@@ -1,13 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Type } from "class-transformer";
-import {
-	IsArray,
-	IsInt,
-	IsOptional,
-	IsString,
-	Min,
-	ValidateNested,
-} from "class-validator";
+import { IsArray, IsInt, IsOptional, IsString, Min, ValidateNested } from "class-validator";
 
 class SortingDto {
 	@ApiProperty({ description: "Field to sort by" })
@@ -25,7 +18,8 @@ class ColumnFilterDto {
 	id: string;
 
 	@ApiProperty({ description: "Filter value(s)" })
-	value: any;
+	@IsString()
+	value: string;
 
 	@ApiProperty({ description: "Filter function (in, contains)" })
 	@IsString()
@@ -33,13 +27,15 @@ class ColumnFilterDto {
 }
 
 class DateRangeDto {
-	@ApiProperty({ description: "Start date (ISO 8601)" })
-	@IsString()
-	from: string;
+	@ApiProperty({ description: "Start date (Unix timestamp in seconds)" })
+	@IsInt()
+	@Min(0)
+	from: number;
 
-	@ApiProperty({ description: "End date (ISO 8601)" })
-	@IsString()
-	to: string;
+	@ApiProperty({ description: "End date (Unix timestamp in seconds)" })
+	@IsInt()
+	@Min(0)
+	to: number;
 
 	@ApiProperty({ description: "Date field name" })
 	@IsString()
@@ -51,13 +47,15 @@ class DateRangeDto {
 	timezone?: string;
 }
 
-export class FetchManyDto {
+export class FetchManySlotsDto {
 	@ApiProperty({ description: "Page index (0-based)" })
+	@Type(() => Number)
 	@IsInt()
 	@Min(0)
 	pageIndex: number;
 
 	@ApiProperty({ description: "Page size" })
+	@Type(() => Number)
 	@IsInt()
 	@Min(1)
 	pageSize: number;

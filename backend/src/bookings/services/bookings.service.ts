@@ -1,12 +1,7 @@
-import {
-	forwardRef,
-	Inject,
-	Injectable,
-	NotFoundException,
-} from "@nestjs/common";
+import { forwardRef, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import type { Model } from "mongoose";
-import type { FetchManyDto } from "../../slots/dto/fetch-many.dto";
+import type { FetchManySlotsDto } from "../../slots/dto/fetch-many-slots.dto";
 import { Slot, type SlotDocument } from "../../slots/schemas/slot.schema";
 import { SlotsClickhouseSyncService } from "../../slots/services/slots-clickhouse-sync.service";
 import { Booking, type BookingDocument } from "../schemas/booking.schema";
@@ -23,23 +18,31 @@ export class BookingsService {
 	) {}
 
 	async findById(id: string) {
-		return this.bookingModel.findById(id);
+		const booking = await this.bookingModel.findById(id);
+		if (!booking) return null;
+		const json = booking.toJSON() as any;
+		json.slotStartsAt = Math.floor(new Date(json.slotStartsAt).getTime() / 1000);
+		json.createdAt = json.createdAt ? Math.floor(new Date(json.createdAt).getTime() / 1000) : undefined;
+		json.updatedAt = json.updatedAt ? Math.floor(new Date(json.updatedAt).getTime() / 1000) : undefined;
+		return json;
 	}
 
 	async cancel(id: string) {
-		const booking = await this.bookingModel.findById(id);
-		if (!booking) throw new NotFoundException("Resource not found");
-
-		if (booking.status === "CANCELLED") {
-			return booking; // идемпотентность
-		}
-
 		const session = await this.bookingModel.db.startSession();
 		session.startTransaction();
 		try {
-			booking.status = "CANCELLED";
-			booking.chSyncPending = true;
-			await booking.save({ session });
+			const booking = await this.bookingModel.findOneAndUpdate(
+				{ _id: id, status: "ACTIVE" },
+				{ status: "CANCELLED", chSyncPending: true },
+				{ new: true, session },
+			);
+
+			if (!booking) {
+				await session.abortTransaction();
+				const existing = await this.bookingModel.findById(id);
+				if (!existing) throw new NotFoundException("Resource not found");
+				return existing;
+			}
 
 			const updatedSlot = await this.slotModel.findByIdAndUpdate(
 				booking.slotId,
@@ -51,9 +54,7 @@ export class BookingsService {
 
 			await Promise.all([
 				this.syncService.syncOnWrite(booking).catch(() => {}),
-				...(updatedSlot
-					? [this.slotsSyncService.syncOnWrite(updatedSlot).catch(() => {})]
-					: []),
+				...(updatedSlot ? [this.slotsSyncService.syncOnWrite(updatedSlot).catch(() => {})] : []),
 			]);
 		} catch (err) {
 			await session.abortTransaction();
@@ -62,10 +63,10 @@ export class BookingsService {
 			session.endSession();
 		}
 
-		return booking;
+		return this.bookingModel.findById(id);
 	}
 
-	async fetchMany(dto: FetchManyDto) {
+	async fetchMany(dto: FetchManySlotsDto) {
 		return this.syncService.fetchBookings(dto);
 	}
 }

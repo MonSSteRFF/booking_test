@@ -19,6 +19,10 @@ services:
       - "8123:8123"
     volumes:
       - ./clickhouse-data:/var/lib/clickhouse
+    environment:
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: clickhouse
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
       interval: 5s
@@ -49,6 +53,8 @@ services:
       - ADMIN_LOGIN=admin
       - ADMIN_PASSWORD=admin123
       - JWT_SECRET=secret
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_PASSWORD=clickhouse
     depends_on:
       mongodb:
         condition: service_healthy

@@ -1,9 +1,4 @@
-import {
-	ExceptionFilter,
-	Catch,
-	ArgumentsHost,
-	BadRequestException,
-} from "@nestjs/common";
+import { ArgumentsHost, BadRequestException, Catch, ExceptionFilter } from "@nestjs/common";
 import type { Response } from "express";
 
 @Catch(BadRequestException)
@@ -16,11 +11,7 @@ export class ValidationExceptionFilter implements ExceptionFilter {
 
 		let fieldErrors: { field: string; message: string }[] = [];
 
-		if (
-			typeof exceptionResponse === "object" &&
-			exceptionResponse !== null &&
-			"message" in exceptionResponse
-		) {
+		if (typeof exceptionResponse === "object" && exceptionResponse !== null && "message" in exceptionResponse) {
 			const messages = (exceptionResponse as any).message;
 			if (Array.isArray(messages)) {
 				fieldErrors = messages.map((msg: string) => {

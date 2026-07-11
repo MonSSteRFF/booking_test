@@ -3,8 +3,9 @@ import { DateTimePicker } from "@mantine/dates";
 import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
 import { useEffect, useState } from "react";
-import { createSlot, updateSlot } from "../api/slots";
-import type { Slot } from "../types";
+import { slotsApi } from "@/api";
+import { getFieldErrors, getErrorMessage } from "@/api/errors";
+import type { Slot } from "@/api/types";
 
 interface Props {
 	slot: Slot | null;
@@ -14,64 +15,60 @@ interface Props {
 export function SlotForm({ slot, onSuccess }: Props) {
 	const [loading, setLoading] = useState(false);
 
-	const form = useForm({
+	const { setValues, reset, values, onSubmit, getInputProps, setFieldError } = useForm({
 		initialValues: {
 			title: "",
 			startsAt: new Date(),
 			capacity: 10,
 		},
 		validate: {
-			title: (value) => (value.trim().length > 0 ? null : "Title is required"),
+			title: (value) => {
+				if (!value.trim()) return "Title is required";
+				if (value.length > 200) return "Title must be at most 200 characters";
+				return null;
+			},
 			startsAt: (value) => (value ? null : "Invalid date"),
-			capacity: (value) =>
-				value >= 1 && value <= 1000
-					? null
-					: "Capacity must be between 1 and 1000",
+			capacity: (value) => (value >= 1 && value <= 1000 ? null : "Capacity must be between 1 and 1000"),
 		},
 	});
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: form dont need in useEffect
 	useEffect(() => {
 		if (slot) {
-			form.setValues({
+			setValues({
 				title: slot.title,
-				startsAt: new Date(slot.startsAt),
+				startsAt: new Date(slot.startsAt * 1000),
 				capacity: slot.capacity,
 			});
 		} else {
-			form.reset();
+			reset();
 		}
-	}, [slot]);
+	}, [slot, setValues, reset]);
 
-	const handleSubmit = async (values: typeof form.values) => {
+	const handleSubmit = async (body: typeof values) => {
 		setLoading(true);
 		try {
 			const payload = {
-				title: values.title,
-				startsAt: values.startsAt.toISOString(),
-				capacity: values.capacity,
+				title: body.title,
+				startsAt: Math.floor(body.startsAt.getTime() / 1000),
+				capacity: body.capacity,
 			};
 			if (slot) {
-				await updateSlot(slot.mongoId, payload);
+				await slotsApi.updateSlot(slot.mongoId, payload);
 				notifications.show({ message: "Slot updated", color: "green" });
 			} else {
-				await createSlot(payload);
+				await slotsApi.createSlot(payload);
 				notifications.show({ message: "Slot created", color: "green" });
 			}
 			onSuccess();
-	} catch (err: any) {
-			const fieldErrors = err?.details?.field_errors;
-			if (fieldErrors) {
-				const errors: Record<string, string> = {};
-				fieldErrors.forEach((e: any) => {
-					errors[e.field] = e.message;
-				});
-				form.setErrors(errors);
+		} catch (err) {
+			const fieldErrors = getFieldErrors(err);
+			if (fieldErrors.length > 0) {
+				for (const fe of fieldErrors) {
+					setFieldError(fe.field, fe.message);
+				}
+				notifications.show({ message: "Проверьте ошибки в полях формы", color: "red" });
 			} else {
-				notifications.show({
-					message: err?.message || "Save failed",
-					color: "red",
-				});
+				notifications.show({ message: getErrorMessage(err), color: "red" });
 			}
 		} finally {
 			setLoading(false);
@@ -79,23 +76,10 @@ export function SlotForm({ slot, onSuccess }: Props) {
 	};
 
 	return (
-		<form onSubmit={form.onSubmit(handleSubmit)}>
-			<TextInput label="Title" {...form.getInputProps("title")} required />
-			<DateTimePicker
-				label="Starts At"
-				valueFormat="YYYY-MM-DD HH:mm"
-				{...form.getInputProps("startsAt")}
-				required
-				mt="sm"
-			/>
-			<NumberInput
-				label="Capacity"
-				{...form.getInputProps("capacity")}
-				min={1}
-				max={1000}
-				required
-				mt="sm"
-			/>
+		<form onSubmit={onSubmit(handleSubmit)}>
+			<TextInput label="Title" {...getInputProps("title")} required />
+			<DateTimePicker label="Starts At" valueFormat="YYYY-MM-DD HH:mm" {...getInputProps("startsAt")} required mt="sm" />
+			<NumberInput label="Capacity" {...getInputProps("capacity")} min={1} max={1000} required mt="sm" />
 			<Group justify="flex-end" mt="md">
 				<Button type="submit" loading={loading}>
 					{slot ? "Update" : "Create"}

@@ -1,17 +1,10 @@
-import {
-	ConflictException,
-	Injectable,
-	NotFoundException,
-} from "@nestjs/common";
+import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import type { Model } from "mongoose";
-import {
-	Booking,
-	type BookingDocument,
-} from "../../bookings/schemas/booking.schema";
+import { Booking, type BookingDocument } from "../../bookings/schemas/booking.schema";
 import { BookingsClickhouseSyncService } from "../../bookings/services/bookings-clickhouse-sync.service";
 import type { CreateSlotDto } from "../dto/create-slot.dto";
-import type { FetchManyDto } from "../dto/fetch-many.dto";
+import type { FetchManySlotsDto } from "../dto/fetch-many-slots.dto";
 import type { UpdateSlotDto } from "../dto/update-slot.dto";
 import { Slot, type SlotDocument } from "../schemas/slot.schema";
 import { SlotsClickhouseSyncService } from "./slots-clickhouse-sync.service";
@@ -26,13 +19,19 @@ export class SlotsService {
 	) {}
 
 	async findById(id: string) {
-		return this.slotModel.findById(id);
+		const slot = await this.slotModel.findById(id);
+		if (!slot) return null;
+		const json = slot.toJSON() as any;
+		json.startsAt = Math.floor(new Date(json.startsAt).getTime() / 1000);
+		json.createdAt = json.createdAt ? Math.floor(new Date(json.createdAt).getTime() / 1000) : undefined;
+		json.updatedAt = json.updatedAt ? Math.floor(new Date(json.updatedAt).getTime() / 1000) : undefined;
+		return json;
 	}
 
 	async create(dto: CreateSlotDto) {
 		const slot = new this.slotModel({
 			title: dto.title,
-			startsAt: new Date(dto.startsAt),
+			startsAt: new Date(dto.startsAt * 1000),
 			capacity: dto.capacity,
 		});
 		const saved = await slot.save();
@@ -53,7 +52,7 @@ export class SlotsService {
 		}
 
 		if (dto.title !== undefined) slot.title = dto.title;
-		if (dto.startsAt !== undefined) slot.startsAt = new Date(dto.startsAt);
+		if (dto.startsAt !== undefined) slot.startsAt = new Date(dto.startsAt * 1000);
 		if (dto.capacity !== undefined) slot.capacity = dto.capacity;
 		slot.chSyncPending = true;
 
@@ -63,20 +62,13 @@ export class SlotsService {
 	}
 
 	async deactivate(id: string) {
-		const slot = await this.slotModel.findByIdAndUpdate(
-			id,
-			{ isActive: false, chSyncPending: true },
-			{ new: true },
-		);
+		const slot = await this.slotModel.findByIdAndUpdate(id, { isActive: false, chSyncPending: true }, { new: true });
 		if (!slot) throw new NotFoundException("Resource not found");
 		await this.syncService.syncOnWrite(slot).catch(() => {});
 		return slot;
 	}
 
-	async bookSlot(
-		slotId: string,
-		dto: { clientName: string; clientEmail: string },
-	) {
+	async bookSlot(slotId: string, dto: { clientName: string; clientEmail: string }) {
 		const slot = await this.slotModel.findById(slotId);
 		if (!slot) throw new NotFoundException("Slot not found");
 
@@ -149,10 +141,7 @@ export class SlotsService {
 			await booking.save({ session });
 			await session.commitTransaction();
 
-			await Promise.all([
-				this.syncService.syncOnWrite(updatedSlot).catch(() => {}),
-				this.bookingSyncService.syncOnWrite(booking).catch(() => {}),
-			]);
+			await Promise.all([this.syncService.syncOnWrite(updatedSlot).catch(() => {}), this.bookingSyncService.syncOnWrite(booking).catch(() => {})]);
 
 			return booking;
 		} catch (err) {
@@ -163,7 +152,7 @@ export class SlotsService {
 		}
 	}
 
-	async fetchMany(dto: FetchManyDto) {
+	async fetchMany(dto: FetchManySlotsDto) {
 		return this.syncService.fetchSlots(dto);
 	}
 }

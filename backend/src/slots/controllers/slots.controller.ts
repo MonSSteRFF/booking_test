@@ -1,27 +1,12 @@
-import {
-	Body,
-	Controller,
-	Get,
-	NotFoundException,
-	Param,
-	Patch,
-	Post,
-	UseGuards,
-} from "@nestjs/common";
-import {
-	ApiBearerAuth,
-	ApiCreatedResponse,
-	ApiOkResponse,
-	ApiOperation,
-	ApiTags,
-} from "@nestjs/swagger";
+import { Body, Controller, Get, NotFoundException, Param, Patch, Post, UseGuards } from "@nestjs/common";
+import { ApiBearerAuth, ApiBody, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { SlotsListResponse } from "../../api/response.dto";
 import { JwtAuthGuard } from "../../auth/jwt-auth.guard";
-import type { CreateBookingDto } from "../../bookings/dto/create-booking.dto";
+import { CreateBookingDto } from "../../bookings/dto/create-booking.dto";
 import { Booking } from "../../bookings/schemas/booking.schema";
-import type { CreateSlotDto } from "../dto/create-slot.dto";
-import type { FetchManyDto } from "../dto/fetch-many.dto";
-import type { UpdateSlotDto } from "../dto/update-slot.dto";
+import { CreateSlotDto } from "../dto/create-slot.dto";
+import { FetchManySlotsDto } from "../dto/fetch-many-slots.dto";
+import { UpdateSlotDto } from "../dto/update-slot.dto";
 import { Slot } from "../schemas/slot.schema";
 import { SlotsService } from "../services/slots.service";
 
@@ -34,8 +19,9 @@ export class SlotsController {
 
 	@Post("fetch/many")
 	@ApiOperation({ summary: "Get paginated list of slots (from ClickHouse)" })
+	@ApiBody({ type: FetchManySlotsDto })
 	@ApiOkResponse({ type: SlotsListResponse })
-	async fetchMany(@Body() dto: FetchManyDto) {
+	async fetchMany(@Body() dto: FetchManySlotsDto) {
 		return this.slotsService.fetchMany(dto);
 	}
 

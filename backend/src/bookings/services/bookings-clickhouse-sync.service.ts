@@ -5,7 +5,7 @@ import { InjectModel } from "@nestjs/mongoose";
 import { Cron } from "@nestjs/schedule";
 import Redis from "ioredis";
 import type { Model } from "mongoose";
-import type { FetchManyDto } from "../../slots/dto/fetch-many.dto";
+import type { FetchManySlotsDto } from "../../slots/dto/fetch-many-slots.dto";
 import { Booking, type BookingDocument } from "../schemas/booking.schema";
 
 @Injectable()
@@ -21,7 +21,11 @@ export class BookingsClickhouseSyncService implements OnModuleInit {
 		if (!clickhouseUrl) {
 			throw new Error("clickhouseUrl is not defined in config");
 		}
-		this.chClient = createClient({ url: clickhouseUrl });
+		this.chClient = createClient({
+			url: clickhouseUrl,
+			username: this.config.get<string>("clickhouseUser"),
+			password: this.config.get<string>("clickhousePassword"),
+		});
 
 		const redisUrl = this.config.get<string>("redisUrl");
 		if (!redisUrl) {
@@ -31,11 +35,10 @@ export class BookingsClickhouseSyncService implements OnModuleInit {
 	}
 
 	async onModuleInit() {
-		await this.chClient.exec({
-			query: "CREATE DATABASE IF NOT EXISTS booking_app",
-		});
-		await this.chClient.exec({
-			query: `
+		await this.chClient.query({ query: "CREATE DATABASE IF NOT EXISTS booking_app" }).then((r) => r.text());
+		await this.chClient
+			.query({
+				query: `
         CREATE TABLE IF NOT EXISTS booking_app.bookings (
           mongo_id       String,
           slot_mongo_id  String,
@@ -48,7 +51,8 @@ export class BookingsClickhouseSyncService implements OnModuleInit {
           updated_at     DateTime('UTC')
         ) ENGINE = ReplacingMergeTree(updated_at) ORDER BY (mongo_id)
       `,
-		});
+			})
+			.then((r) => r.text());
 	}
 
 	async syncOnWrite(booking: BookingDocument) {
@@ -60,20 +64,17 @@ export class BookingsClickhouseSyncService implements OnModuleInit {
 						mongo_id: booking._id.toString(),
 						slot_mongo_id: booking.slotId,
 						slot_title: booking.slotTitle,
-						slot_starts_at: booking.slotStartsAt,
+						slot_starts_at: Math.floor(new Date(booking.slotStartsAt).getTime() / 1000),
 						client_name: booking.clientName,
 						client_email: booking.clientEmail,
 						status: booking.status,
-						created_at: booking.createdAt,
-						updated_at: booking.updatedAt,
+						created_at: booking.createdAt ? Math.floor(new Date(booking.createdAt).getTime() / 1000) : 0,
+						updated_at: booking.updatedAt ? Math.floor(new Date(booking.updatedAt).getTime() / 1000) : 0,
 					},
 				],
 				format: "JSONEachRow",
 			});
-			await this.bookingModel.updateOne(
-				{ _id: booking._id },
-				{ chSyncPending: false },
-			);
+			await this.bookingModel.updateOne({ _id: booking._id }, { chSyncPending: false });
 		} catch (err) {
 			console.error("Booking sync-on-write failed", booking._id, err);
 		}
@@ -86,21 +87,19 @@ export class BookingsClickhouseSyncService implements OnModuleInit {
 		if (!acquired) return;
 
 		try {
-			const pending = await this.bookingModel
-				.find({ chSyncPending: true })
-				.exec();
+			const pending = await this.bookingModel.find({ chSyncPending: true }).exec();
 			if (pending.length === 0) return;
 
 			const values = pending.map((b) => ({
 				mongo_id: b._id.toString(),
 				slot_mongo_id: b.slotId,
 				slot_title: b.slotTitle,
-				slot_starts_at: b.slotStartsAt,
+				slot_starts_at: Math.floor(new Date(b.slotStartsAt).getTime() / 1000),
 				client_name: b.clientName,
 				client_email: b.clientEmail,
 				status: b.status,
-				created_at: b.createdAt,
-				updated_at: b.updatedAt,
+				created_at: b.createdAt ? Math.floor(new Date(b.createdAt).getTime() / 1000) : 0,
+				updated_at: b.updatedAt ? Math.floor(new Date(b.updatedAt).getTime() / 1000) : 0,
 			}));
 
 			await this.chClient.insert({
@@ -109,10 +108,7 @@ export class BookingsClickhouseSyncService implements OnModuleInit {
 				format: "JSONEachRow",
 			});
 
-			await this.bookingModel.updateMany(
-				{ _id: { $in: pending.map((b) => b._id) } },
-				{ chSyncPending: false },
-			);
+			await this.bookingModel.updateMany({ _id: { $in: pending.map((b) => b._id) } }, { chSyncPending: false });
 		} catch (err) {
 			console.error("Booking background sync failed", err);
 		} finally {
@@ -121,7 +117,7 @@ export class BookingsClickhouseSyncService implements OnModuleInit {
 		}
 	}
 
-	async fetchBookings(dto: FetchManyDto) {
+	async fetchBookings(dto: FetchManySlotsDto) {
 		const BOOKING_FIELD_MAP: Record<string, string> = {
 			createdAt: "created_at",
 			updatedAt: "updated_at",
@@ -150,8 +146,7 @@ export class BookingsClickhouseSyncService implements OnModuleInit {
 			}
 		}
 		if (dto.dateRange) {
-			const field =
-				dto.dateRange.field === "created_at" ? "created_at" : "slot_starts_at";
+			const field = dto.dateRange.field === "created_at" ? "created_at" : "slot_starts_at";
 			const keyFrom = `p${paramIdx++}`;
 			const keyTo = `p${paramIdx++}`;
 			conditions.push(`${field} >= {${keyFrom}:DateTime}`);
@@ -163,12 +158,7 @@ export class BookingsClickhouseSyncService implements OnModuleInit {
 		const where = conditions.join(" AND ");
 
 		const orderBy = dto.sorting?.length
-			? dto.sorting
-					.map(
-						(s) =>
-							`${BOOKING_FIELD_MAP[s.id] || s.id} ${s.desc ? "DESC" : "ASC"}`,
-					)
-					.join(", ")
+			? dto.sorting.map((s) => `${BOOKING_FIELD_MAP[s.id] || s.id} ${s.desc ? "DESC" : "ASC"}`).join(", ")
 			: "created_at DESC";
 
 		const countQuery = `SELECT count() AS total FROM booking_app.bookings FINAL WHERE ${where}`;
@@ -178,11 +168,13 @@ export class BookingsClickhouseSyncService implements OnModuleInit {
 		});
 		const totalCount = ((await countResult.json()) as any).data[0].total;
 
-		const offset = dto.pageIndex * dto.pageSize;
+		const pageIndex = dto.pageIndex ?? 0;
+		const pageSize = dto.pageSize ?? 10;
+		const offset = pageIndex * pageSize;
 		const dataQuery = `SELECT * FROM booking_app.bookings FINAL WHERE ${where} ORDER BY ${orderBy} LIMIT {limit:UInt32} OFFSET {offset:UInt32}`;
 		const dataResult = await this.chClient.query({
 			query: dataQuery,
-			query_params: { ...queryParams, limit: dto.pageSize, offset },
+			query_params: { ...queryParams, limit: pageSize, offset },
 		});
 		const rows = ((await dataResult.json()) as any).data;
 
@@ -190,12 +182,12 @@ export class BookingsClickhouseSyncService implements OnModuleInit {
 			mongoId: row.mongo_id,
 			slotId: row.slot_mongo_id,
 			slotTitle: row.slot_title,
-			slotStartsAt: row.slot_starts_at,
+			slotStartsAt: Math.floor(new Date(`${String(row.slot_starts_at).replace(' ', 'T')}Z`).getTime() / 1000),
 			clientName: row.client_name,
 			clientEmail: row.client_email,
 			status: row.status,
-			createdAt: row.created_at,
-			updatedAt: row.updated_at,
+			createdAt: Math.floor(new Date(`${String(row.created_at).replace(' ', 'T')}Z`).getTime() / 1000),
+			updatedAt: Math.floor(new Date(`${String(row.updated_at).replace(' ', 'T')}Z`).getTime() / 1000),
 		}));
 
 		return { data, totalCount: Number(totalCount) };

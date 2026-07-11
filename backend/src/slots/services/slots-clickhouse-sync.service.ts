@@ -5,7 +5,7 @@ import { InjectModel } from "@nestjs/mongoose";
 import { Cron } from "@nestjs/schedule";
 import Redis from "ioredis";
 import type { Model } from "mongoose";
-import type { FetchManyDto } from "../dto/fetch-many.dto";
+import type { FetchManySlotsDto } from "../dto/fetch-many-slots.dto";
 import type { SlotDocument } from "../schemas/slot.schema";
 import { Slot } from "../schemas/slot.schema";
 
@@ -22,7 +22,11 @@ export class SlotsClickhouseSyncService implements OnModuleInit {
 		if (!clickhouseUrl) {
 			throw new Error("clickhouseUrl is not defined in config");
 		}
-		this.chClient = createClient({ url: clickhouseUrl });
+		this.chClient = createClient({
+			url: clickhouseUrl,
+			username: this.config.get<string>("clickhouseUser"),
+			password: this.config.get<string>("clickhousePassword"),
+		});
 
 		const redisUrl = this.config.get<string>("redisUrl");
 		if (!redisUrl) {
@@ -32,23 +36,23 @@ export class SlotsClickhouseSyncService implements OnModuleInit {
 	}
 
 	async onModuleInit() {
-		await this.chClient.exec({
-			query: "CREATE DATABASE IF NOT EXISTS booking_app",
-		});
-		await this.chClient.exec({
-			query: `
+		await this.chClient.query({ query: "CREATE DATABASE IF NOT EXISTS booking_app" }).then((r) => r.text());
+		await this.chClient
+			.query({
+				query: `
         CREATE TABLE IF NOT EXISTS booking_app.slots (
-          mongo_id String,
-          title String,
-          starts_at DateTime('UTC'),
-          capacity UInt32,
-          booked_count UInt32,
-          is_active UInt8,
-          created_at DateTime('UTC'),
-          updated_at DateTime('UTC')
+          mongo_id      String,
+          title         String,
+          starts_at     DateTime('UTC'),
+          capacity      UInt32,
+          booked_count  UInt32,
+          is_active     UInt8,
+          created_at    DateTime('UTC'),
+          updated_at    DateTime('UTC')
         ) ENGINE = ReplacingMergeTree(updated_at) ORDER BY (mongo_id)
       `,
-		});
+			})
+			.then((r) => r.text());
 	}
 
 	async syncOnWrite(slot: SlotDocument) {
@@ -59,21 +63,18 @@ export class SlotsClickhouseSyncService implements OnModuleInit {
 					{
 						mongo_id: slot._id.toString(),
 						title: slot.title,
-						starts_at: slot.startsAt,
+						starts_at: Math.floor(new Date(slot.startsAt).getTime() / 1000),
 						capacity: slot.capacity,
 						booked_count: slot.bookedCount,
 						is_active: slot.isActive ? 1 : 0,
-						created_at: slot.createdAt,
-						updated_at: slot.updatedAt,
+						created_at: slot.createdAt ? Math.floor(new Date(slot.createdAt).getTime() / 1000) : 0,
+						updated_at: slot.updatedAt ? Math.floor(new Date(slot.updatedAt).getTime() / 1000) : 0,
 					},
 				],
 				format: "JSONEachRow",
 			});
 			// Сбрасываем флаг только после успешной вставки
-			await this.slotModel.updateOne(
-				{ _id: slot._id },
-				{ chSyncPending: false },
-			);
+			await this.slotModel.updateOne({ _id: slot._id }, { chSyncPending: false });
 		} catch (err) {
 			// Ошибка просто логируется, флаг остаётся true
 			console.error("Sync-on-write failed for slot", slot._id, err);
@@ -88,20 +89,18 @@ export class SlotsClickhouseSyncService implements OnModuleInit {
 		if (!acquired) return;
 
 		try {
-			const pendingSlots = await this.slotModel
-				.find({ chSyncPending: true })
-				.exec();
+			const pendingSlots = await this.slotModel.find({ chSyncPending: true }).exec();
 			if (pendingSlots.length === 0) return;
 
 			const values = pendingSlots.map((slot) => ({
 				mongo_id: slot._id.toString(),
 				title: slot.title,
-				starts_at: slot.startsAt,
+				starts_at: Math.floor(new Date(slot.startsAt).getTime() / 1000),
 				capacity: slot.capacity,
 				booked_count: slot.bookedCount,
 				is_active: slot.isActive ? 1 : 0,
-				created_at: slot.createdAt,
-				updated_at: slot.updatedAt,
+				created_at: slot.createdAt ? Math.floor(new Date(slot.createdAt).getTime() / 1000) : 0,
+				updated_at: slot.updatedAt ? Math.floor(new Date(slot.updatedAt).getTime() / 1000) : 0,
 			}));
 
 			await this.chClient.insert({
@@ -111,10 +110,7 @@ export class SlotsClickhouseSyncService implements OnModuleInit {
 			});
 
 			// Сбрасываем флаги
-			await this.slotModel.updateMany(
-				{ _id: { $in: pendingSlots.map((s) => s._id) } },
-				{ chSyncPending: false },
-			);
+			await this.slotModel.updateMany({ _id: { $in: pendingSlots.map((s) => s._id) } }, { chSyncPending: false });
 		} catch (err) {
 			console.error("Background sync failed", err);
 		} finally {
@@ -123,7 +119,7 @@ export class SlotsClickhouseSyncService implements OnModuleInit {
 		}
 	}
 
-	async fetchSlots(dto: FetchManyDto) {
+	async fetchSlots(dto: FetchManySlotsDto) {
 		const SLOT_FIELD_MAP: Record<string, string> = {
 			createdAt: "created_at",
 			updatedAt: "updated_at",
@@ -133,7 +129,7 @@ export class SlotsClickhouseSyncService implements OnModuleInit {
 		};
 
 		const conditions: string[] = ["1=1"];
-		const queryParams: Record<string, any> = {};
+		const queryParams: Record<string, unknown> = {};
 		let paramIdx = 0;
 
 		if (dto.columnFilters) {
@@ -150,8 +146,7 @@ export class SlotsClickhouseSyncService implements OnModuleInit {
 			}
 		}
 		if (dto.dateRange) {
-			const field =
-				dto.dateRange.field === "created_at" ? "created_at" : "starts_at";
+			const field = dto.dateRange.field === "created_at" ? "created_at" : "starts_at";
 			const keyFrom = `p${paramIdx++}`;
 			const keyTo = `p${paramIdx++}`;
 			conditions.push(`${field} >= {${keyFrom}:DateTime}`);
@@ -163,12 +158,7 @@ export class SlotsClickhouseSyncService implements OnModuleInit {
 		const where = conditions.join(" AND ");
 
 		const orderBy = dto.sorting?.length
-			? dto.sorting
-					.map(
-						(s) =>
-							`${SLOT_FIELD_MAP[s.id] || s.id} ${s.desc ? "DESC" : "ASC"}`,
-					)
-					.join(", ")
+			? dto.sorting.map((s) => `${SLOT_FIELD_MAP[s.id] || s.id} ${s.desc ? "DESC" : "ASC"}`).join(", ")
 			: "created_at DESC";
 
 		const countQuery = `SELECT count() AS total FROM booking_app.slots FINAL WHERE ${where}`;
@@ -178,23 +168,25 @@ export class SlotsClickhouseSyncService implements OnModuleInit {
 		});
 		const totalCount = ((await countResult.json()) as any).data[0].total;
 
-		const offset = dto.pageIndex * dto.pageSize;
+		const pageIndex = dto.pageIndex ?? 0;
+		const pageSize = dto.pageSize ?? 10;
+		const offset = pageIndex * pageSize;
 		const dataQuery = `SELECT * FROM booking_app.slots FINAL WHERE ${where} ORDER BY ${orderBy} LIMIT {limit:UInt32} OFFSET {offset:UInt32}`;
 		const dataResult = await this.chClient.query({
 			query: dataQuery,
-			query_params: { ...queryParams, limit: dto.pageSize, offset },
+			query_params: { ...queryParams, limit: pageSize, offset },
 		});
 		const rows = ((await dataResult.json()) as any).data;
 
 		const data = rows.map((row: any) => ({
 			mongoId: row.mongo_id,
 			title: row.title,
-			startsAt: row.starts_at,
+			startsAt: Math.floor(new Date(`${String(row.starts_at).replace(' ', 'T')}Z`).getTime() / 1000),
 			capacity: row.capacity,
 			bookedCount: row.booked_count,
 			isActive: row.is_active === 1,
-			createdAt: row.created_at,
-			updatedAt: row.updated_at,
+			createdAt: Math.floor(new Date(`${String(row.created_at).replace(' ', 'T')}Z`).getTime() / 1000),
+			updatedAt: Math.floor(new Date(`${String(row.updated_at).replace(' ', 'T')}Z`).getTime() / 1000),
 		}));
 
 		return { data, totalCount: Number(totalCount) };

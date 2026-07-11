@@ -11,12 +11,16 @@
 	"formatter": {
 		"enabled": true,
 		"indentStyle": "tab",
-		"indentWidth": 2
+		"indentWidth": 2,
+		"lineWidth": 150
 	},
 	"linter": {
 		"enabled": true,
 		"rules": {
-			"preset": "recommended"
+			"preset": "recommended",
+			"style": {
+				"useImportType": "off"
+			}
 		}
 	},
 	"javascript": {
