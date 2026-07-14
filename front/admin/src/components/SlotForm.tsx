@@ -4,7 +4,7 @@ import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
 import { useEffect, useState } from "react";
 import { slotsApi } from "@/api";
-import { getFieldErrors, getErrorMessage } from "@/api/errors";
+import { getErrorMessage, getFieldErrors } from "@/api/errors";
 import type { Slot } from "@/api/types";
 
 interface Props {
@@ -18,7 +18,7 @@ export function SlotForm({ slot, onSuccess }: Props) {
 	const { setValues, reset, values, onSubmit, getInputProps, setFieldError } = useForm({
 		initialValues: {
 			title: "",
-			startsAt: new Date(),
+			startsAt: new Date().toISOString(),
 			capacity: 10,
 		},
 		validate: {
@@ -36,7 +36,7 @@ export function SlotForm({ slot, onSuccess }: Props) {
 		if (slot) {
 			setValues({
 				title: slot.title,
-				startsAt: new Date(slot.startsAt * 1000),
+				startsAt: slot.startsAt,
 				capacity: slot.capacity,
 			});
 		} else {
@@ -46,10 +46,11 @@ export function SlotForm({ slot, onSuccess }: Props) {
 
 	const handleSubmit = async (body: typeof values) => {
 		setLoading(true);
+
 		try {
 			const payload = {
 				title: body.title,
-				startsAt: Math.floor(body.startsAt.getTime() / 1000),
+				startsAt: body.startsAt,
 				capacity: body.capacity,
 			};
 			if (slot) {
@@ -78,7 +79,7 @@ export function SlotForm({ slot, onSuccess }: Props) {
 	return (
 		<form onSubmit={onSubmit(handleSubmit)}>
 			<TextInput label="Title" {...getInputProps("title")} required />
-			<DateTimePicker label="Starts At" valueFormat="YYYY-MM-DD HH:mm" {...getInputProps("startsAt")} required mt="sm" />
+			<DateTimePicker label="Starts At" valueFormat={(d) => new Date(d).toISOString()} {...getInputProps("startsAt")} required mt="sm" />
 			<NumberInput label="Capacity" {...getInputProps("capacity")} min={1} max={1000} required mt="sm" />
 			<Group justify="flex-end" mt="md">
 				<Button type="submit" loading={loading}>

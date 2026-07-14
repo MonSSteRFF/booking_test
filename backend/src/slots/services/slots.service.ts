@@ -21,17 +21,13 @@ export class SlotsService {
 	async findById(id: string) {
 		const slot = await this.slotModel.findById(id);
 		if (!slot) return null;
-		const json = slot.toJSON() as any;
-		json.startsAt = Math.floor(new Date(json.startsAt).getTime() / 1000);
-		json.createdAt = json.createdAt ? Math.floor(new Date(json.createdAt).getTime() / 1000) : undefined;
-		json.updatedAt = json.updatedAt ? Math.floor(new Date(json.updatedAt).getTime() / 1000) : undefined;
-		return json;
+		return slot.toJSON() as Slot;
 	}
 
 	async create(dto: CreateSlotDto) {
 		const slot = new this.slotModel({
 			title: dto.title,
-			startsAt: new Date(dto.startsAt * 1000),
+			startsAt: dto.startsAt,
 			capacity: dto.capacity,
 		});
 		const saved = await slot.save();
@@ -52,7 +48,7 @@ export class SlotsService {
 		}
 
 		if (dto.title !== undefined) slot.title = dto.title;
-		if (dto.startsAt !== undefined) slot.startsAt = new Date(dto.startsAt * 1000);
+		if (dto.startsAt !== undefined) slot.startsAt = new Date(dto.startsAt);
 		if (dto.capacity !== undefined) slot.capacity = dto.capacity;
 		slot.chSyncPending = true;
 
@@ -101,55 +97,44 @@ export class SlotsService {
 			});
 		}
 
-		const session = await this.slotModel.db.startSession();
-		session.startTransaction();
-		try {
-			const updatedSlot = await this.slotModel.findOneAndUpdate(
-				{
-					_id: slotId,
-					$expr: { $lt: ["$bookedCount", "$capacity"] },
-				},
-				{ $inc: { bookedCount: 1 }, chSyncPending: true },
-				{ new: true, session },
-			);
+		const updatedSlot = await this.slotModel.findOneAndUpdate(
+			{
+				_id: slotId,
+				$expr: { $lt: ["$bookedCount", "$capacity"] },
+			},
+			{ $inc: { bookedCount: 1 }, chSyncPending: true },
+			{ new: true },
+		);
 
-			if (!updatedSlot) {
-				await session.abortTransaction();
-				const current = await this.slotModel.findById(slotId);
-				if (current && !current.isActive) {
-					throw new ConflictException({
-						statusCode: 409,
-						message: "Slot is inactive",
-						details: { code: "SLOT_INACTIVE" },
-					});
-				}
+		if (!updatedSlot) {
+			const current = await this.slotModel.findById(slotId);
+			if (current && !current.isActive) {
 				throw new ConflictException({
 					statusCode: 409,
-					message: "Slot is full",
-					details: { code: "SLOT_FULL" },
+					message: "Slot is inactive",
+					details: { code: "SLOT_INACTIVE" },
 				});
 			}
-
-			const booking = new this.bookingModel({
-				slotId,
-				slotTitle: slot.title,
-				slotStartsAt: slot.startsAt,
-				clientName: dto.clientName,
-				clientEmail: dto.clientEmail.toLowerCase(),
-				status: "ACTIVE",
+			throw new ConflictException({
+				statusCode: 409,
+				message: "Slot is full",
+				details: { code: "SLOT_FULL" },
 			});
-			await booking.save({ session });
-			await session.commitTransaction();
-
-			await Promise.all([this.syncService.syncOnWrite(updatedSlot).catch(() => {}), this.bookingSyncService.syncOnWrite(booking).catch(() => {})]);
-
-			return booking;
-		} catch (err) {
-			await session.abortTransaction().catch(() => {});
-			throw err;
-		} finally {
-			session.endSession();
 		}
+
+		const booking = new this.bookingModel({
+			slotId,
+			slotTitle: slot.title,
+			slotStartsAt: slot.startsAt,
+			clientName: dto.clientName,
+			clientEmail: dto.clientEmail.toLowerCase(),
+			status: "ACTIVE",
+		});
+		await booking.save();
+
+		await Promise.all([this.syncService.syncOnWrite(updatedSlot).catch(() => {}), this.bookingSyncService.syncOnWrite(booking).catch(() => {})]);
+
+		return booking;
 	}
 
 	async fetchMany(dto: FetchManySlotsDto) {

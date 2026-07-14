@@ -1,6 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Type } from "class-transformer";
-import { IsArray, IsInt, IsOptional, IsString, Min, ValidateNested } from "class-validator";
+import { IsArray, IsInt, IsISO8601, IsNotEmpty, IsOptional, IsString, Min, ValidateNested } from "class-validator";
 
 class SortingDto {
 	@ApiProperty({ description: "Field to sort by" })
@@ -27,15 +27,15 @@ class ColumnFilterDto {
 }
 
 class DateRangeDto {
-	@ApiProperty({ description: "Start date (Unix timestamp in seconds)" })
-	@IsInt()
-	@Min(0)
-	from: number;
+	@ApiProperty({ description: "Start date (ISO 8601)" })
+	@IsISO8601()
+	@IsNotEmpty()
+	from: string;
 
-	@ApiProperty({ description: "End date (Unix timestamp in seconds)" })
-	@IsInt()
-	@Min(0)
-	to: number;
+	@ApiProperty({ description: "End date (ISO 8601)" })
+	@IsISO8601()
+	@IsNotEmpty()
+	to: string;
 
 	@ApiProperty({ description: "Date field name" })
 	@IsString()

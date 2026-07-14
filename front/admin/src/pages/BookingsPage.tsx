@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import { bookingsApi } from "@/api";
 import { getErrorMessage } from "@/api/errors";
 import type { Booking, FetchManyBookings } from "@/api/types";
+import { paths } from "@/app/Router/Paths";
 import { useNavigateParams } from "@/app/Router/useNavigateParams";
 import { Layout } from "@/components/Layout";
 
@@ -39,8 +40,8 @@ export const BookingsPage = () => {
 			dateRange:
 				dateRange[0] && dateRange[1]
 					? {
-							from: Math.floor(new Date(dateRange[0]).getTime() / 1000),
-							to: Math.floor(new Date(dateRange[1]).getTime() / 1000),
+							from: dateRange[0],
+							to: dateRange[1],
 							field: "created_at",
 						}
 					: undefined,
@@ -80,7 +81,7 @@ export const BookingsPage = () => {
 	const rows = bookings.map((b) => (
 		<Table.Tr key={b.mongoId}>
 			<Table.Td>{b.slotTitle}</Table.Td>
-			<Table.Td>{dayjs.unix(b.slotStartsAt).format("YYYY-MM-DD HH:mm")}</Table.Td>
+			<Table.Td>{dayjs.unix(new Date(b.slotStartsAt).getTime()).format("YYYY-MM-DD HH:mm")}</Table.Td>
 			<Table.Td>{b.clientName}</Table.Td>
 			<Table.Td>{b.clientEmail}</Table.Td>
 			<Table.Td>
@@ -88,7 +89,7 @@ export const BookingsPage = () => {
 			</Table.Td>
 			<Table.Td>
 				<Group gap="xs">
-					<IconEye size={16} style={{ cursor: "pointer" }} onClick={() => navigate(`/bookings/${b.mongoId}`)} />
+					<IconEye size={16} style={{ cursor: "pointer" }} onClick={() => navigate(paths.BOOKING_PAGE_ID, { params: { id: b.mongoId } })} />
 					{b.status === "ACTIVE" && <IconX size={16} color="red" style={{ cursor: "pointer" }} onClick={() => handleCancel(b.mongoId)} />}
 				</Group>
 			</Table.Td>
@@ -111,24 +112,24 @@ export const BookingsPage = () => {
 				<DatePickerInput type="range" placeholder="Pick dates range" value={dateRange} onChange={setDateRange} clearable />
 			</Group>
 			<Table striped>
-			<Table.Thead>
-				<Table.Tr>
-					<Table.Th onClick={() => handleSort("slotTitle")} style={{ cursor: "pointer" }}>
-						Slot Title {sortField === "slotTitle" ? (sortDesc ? "↓" : "↑") : ""}
-					</Table.Th>
-					<Table.Th onClick={() => handleSort("slotStartsAt")} style={{ cursor: "pointer" }}>
-						Starts At {sortField === "slotStartsAt" ? (sortDesc ? "↓" : "↑") : ""}
-					</Table.Th>
-					<Table.Th onClick={() => handleSort("clientName")} style={{ cursor: "pointer" }}>
-						Client Name {sortField === "clientName" ? (sortDesc ? "↓" : "↑") : ""}
-					</Table.Th>
-					<Table.Th>Email</Table.Th>
-					<Table.Th onClick={() => handleSort("status")} style={{ cursor: "pointer" }}>
-						Status {sortField === "status" ? (sortDesc ? "↓" : "↑") : ""}
-					</Table.Th>
-					<Table.Th>Actions</Table.Th>
-				</Table.Tr>
-			</Table.Thead>
+				<Table.Thead>
+					<Table.Tr>
+						<Table.Th onClick={() => handleSort("slotTitle")} style={{ cursor: "pointer" }}>
+							Slot Title {sortField === "slotTitle" ? (sortDesc ? "↓" : "↑") : ""}
+						</Table.Th>
+						<Table.Th onClick={() => handleSort("slotStartsAt")} style={{ cursor: "pointer" }}>
+							Starts At {sortField === "slotStartsAt" ? (sortDesc ? "↓" : "↑") : ""}
+						</Table.Th>
+						<Table.Th onClick={() => handleSort("clientName")} style={{ cursor: "pointer" }}>
+							Client Name {sortField === "clientName" ? (sortDesc ? "↓" : "↑") : ""}
+						</Table.Th>
+						<Table.Th>Email</Table.Th>
+						<Table.Th onClick={() => handleSort("status")} style={{ cursor: "pointer" }}>
+							Status {sortField === "status" ? (sortDesc ? "↓" : "↑") : ""}
+						</Table.Th>
+						<Table.Th>Actions</Table.Th>
+					</Table.Tr>
+				</Table.Thead>
 				<Table.Tbody>{rows}</Table.Tbody>
 			</Table>
 			<Group mt="md" justify="center">

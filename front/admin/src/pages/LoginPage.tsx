@@ -4,12 +4,9 @@ import React, { useState } from "react";
 import { authApi } from "@/api";
 import { getErrorMessage } from "@/api/errors";
 import { useAuth } from "@/app/Providers/AuthContext";
-import { paths } from "@/app/Router/Paths";
-import { useNavigateParams } from "@/app/Router/useNavigateParams";
 
 export const LoginPage = () => {
 	const { login } = useAuth();
-	const navigate = useNavigateParams();
 	const [loading, setLoading] = useState(false);
 	const [form, setForm] = useState({ login: "", password: "" });
 
@@ -19,7 +16,6 @@ export const LoginPage = () => {
 		try {
 			const token = await authApi.login(form.login, form.password);
 			login(token);
-			navigate(paths.SLOTS_PAGE);
 		} catch (err) {
 			notifications.show({
 				title: "Login failed",

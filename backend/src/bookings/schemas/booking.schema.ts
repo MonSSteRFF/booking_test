@@ -17,7 +17,7 @@ export class Booking {
 	@Prop({ required: true })
 	slotTitle: string;
 
-	@ApiProperty({ description: "Denormalized slot start time at booking time (Unix timestamp in seconds)", type: Number })
+	@ApiProperty({ description: "Denormalized slot start time at booking time (ISO 8601)" })
 	@Prop({ required: true })
 	slotStartsAt: Date;
 
@@ -41,10 +41,10 @@ export class Booking {
 	@Prop({ default: 0 })
 	chSyncVersion: number;
 
-	@ApiProperty({ description: "Creation timestamp (Unix timestamp in seconds)", type: Number })
+	@ApiProperty({ description: "Creation timestamp (ISO 8601)" })
 	createdAt?: Date;
 
-	@ApiProperty({ description: "Last update timestamp (Unix timestamp in seconds)", type: Number })
+	@ApiProperty({ description: "Last update timestamp (ISO 8601)" })
 	updatedAt?: Date;
 }
 
@@ -62,9 +62,6 @@ BookingSchemaRaw.set("toJSON", {
 });
 
 // Индекс уникальности
-BookingSchemaRaw.index(
-	{ slotId: 1, clientEmail: 1 },
-	{ unique: true, partialFilterExpression: { status: "ACTIVE" } },
-);
+BookingSchemaRaw.index({ slotId: 1, clientEmail: 1 }, { unique: true, partialFilterExpression: { status: "ACTIVE" } });
 
 export { BookingSchemaRaw as BookingSchema };

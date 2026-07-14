@@ -13,7 +13,7 @@ export class Slot {
 	@Prop({ required: true, maxlength: 200 })
 	title: string;
 
-	@ApiProperty({ description: "Slot start time (Unix timestamp in seconds)", type: Number })
+	@ApiProperty({ description: "Slot start time (ISO 8601)" })
 	@Prop({ required: true })
 	startsAt: Date;
 
@@ -37,10 +37,10 @@ export class Slot {
 	@Prop()
 	chSyncVersion?: number;
 
-	@ApiProperty({ description: "Creation timestamp (Unix timestamp in seconds)", type: Number })
+	@ApiProperty({ description: "Creation timestamp (ISO 8601)" })
 	createdAt?: Date;
 
-	@ApiProperty({ description: "Last update timestamp (Unix timestamp in seconds)", type: Number })
+	@ApiProperty({ description: "Last update timestamp (ISO 8601)" })
 	updatedAt?: Date;
 }
 

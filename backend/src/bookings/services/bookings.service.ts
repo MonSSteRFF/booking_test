@@ -28,40 +28,28 @@ export class BookingsService {
 	}
 
 	async cancel(id: string) {
-		const session = await this.bookingModel.db.startSession();
-		session.startTransaction();
-		try {
-			const booking = await this.bookingModel.findOneAndUpdate(
-				{ _id: id, status: "ACTIVE" },
-				{ status: "CANCELLED", chSyncPending: true },
-				{ new: true, session },
-			);
+		const booking = await this.bookingModel.findOneAndUpdate(
+			{ _id: id, status: "ACTIVE" },
+			{ status: "CANCELLED", chSyncPending: true },
+			{ new: true },
+		);
 
-			if (!booking) {
-				await session.abortTransaction();
-				const existing = await this.bookingModel.findById(id);
-				if (!existing) throw new NotFoundException("Resource not found");
-				return existing;
-			}
-
-			const updatedSlot = await this.slotModel.findByIdAndUpdate(
-				booking.slotId,
-				{ $inc: { bookedCount: -1 }, chSyncPending: true },
-				{ new: true, session },
-			);
-
-			await session.commitTransaction();
-
-			await Promise.all([
-				this.syncService.syncOnWrite(booking).catch(() => {}),
-				...(updatedSlot ? [this.slotsSyncService.syncOnWrite(updatedSlot).catch(() => {})] : []),
-			]);
-		} catch (err) {
-			await session.abortTransaction();
-			throw err;
-		} finally {
-			session.endSession();
+		if (!booking) {
+			const existing = await this.bookingModel.findById(id);
+			if (!existing) throw new NotFoundException("Resource not found");
+			return existing;
 		}
+
+		const updatedSlot = await this.slotModel.findByIdAndUpdate(
+			booking.slotId,
+			{ $inc: { bookedCount: -1 }, chSyncPending: true },
+			{ new: true },
+		);
+
+		await Promise.all([
+			this.syncService.syncOnWrite(booking).catch(() => {}),
+			...(updatedSlot ? [this.slotsSyncService.syncOnWrite(updatedSlot).catch(() => {})] : []),
+		]);
 
 		return this.bookingModel.findById(id);
 	}

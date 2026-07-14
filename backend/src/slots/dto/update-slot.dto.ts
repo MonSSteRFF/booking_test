@@ -1,13 +1,5 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
-import {
-	IsInt,
-	IsNotEmpty,
-	IsOptional,
-	IsString,
-	MaxLength,
-	Max,
-	Min,
-} from "class-validator";
+import { IsInt, IsISO8601, IsNotEmpty, IsOptional, IsString, Max, MaxLength, Min } from "class-validator";
 
 export class UpdateSlotDto {
 	@ApiPropertyOptional({ description: "Slot title", maxLength: 200 })
@@ -17,11 +9,10 @@ export class UpdateSlotDto {
 	@MaxLength(200)
 	title?: string;
 
-	@ApiPropertyOptional({ description: "Slot start time (Unix timestamp in seconds)" })
+	@ApiPropertyOptional({ description: "Slot start time (ISO 8601)" })
 	@IsOptional()
-	@IsInt()
-	@Min(0)
-	startsAt?: number;
+	@IsISO8601()
+	startsAt?: string;
 
 	@ApiPropertyOptional({
 		description: "Maximum capacity",

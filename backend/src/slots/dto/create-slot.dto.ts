@@ -1,12 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import {
-	IsInt,
-	IsNotEmpty,
-	IsString,
-	Max,
-	MaxLength,
-	Min,
-} from "class-validator";
+import { IsInt, IsISO8601, IsNotEmpty, IsString, Max, MaxLength, Min } from "class-validator";
 
 export class CreateSlotDto {
 	@ApiProperty({ description: "Slot title", maxLength: 200 })
@@ -15,11 +8,10 @@ export class CreateSlotDto {
 	@MaxLength(200)
 	title: string;
 
-	@ApiProperty({ description: "Slot start time (Unix timestamp in seconds)" })
-	@IsInt()
-	@Min(0)
+	@ApiProperty({ description: "Slot start time (ISO 8601)" })
+	@IsISO8601()
 	@IsNotEmpty()
-	startsAt: number;
+	startsAt: string;
 
 	@ApiProperty({ description: "Maximum capacity", minimum: 1, maximum: 1000 })
 	@IsInt()

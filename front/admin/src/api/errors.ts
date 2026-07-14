@@ -34,5 +34,6 @@ export function getErrorMessage(err: unknown): string {
 		if (code && code in BOOKING_ERROR_MESSAGES) return BOOKING_ERROR_MESSAGES[code];
 		if (err.message) return err.message;
 	}
-	return "Произошла ошибка";
+	console.error(err);
+	return "unknown error";
 }

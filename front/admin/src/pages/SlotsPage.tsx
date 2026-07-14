@@ -28,7 +28,9 @@ export const SlotsPage = () => {
 	useEffect(() => {
 		if (titleTimer.current) clearTimeout(titleTimer.current);
 		titleTimer.current = setTimeout(() => setDebouncedTitleFilter(titleFilter), 300);
-		return () => { if (titleTimer.current) clearTimeout(titleTimer.current); };
+		return () => {
+			if (titleTimer.current) clearTimeout(titleTimer.current);
+		};
 	}, [titleFilter]);
 	const [dateRange, setDateRange] = useState<[string | null, string | null]>([null, null]);
 	const handleSort = (field: string) => {
@@ -55,8 +57,8 @@ export const SlotsPage = () => {
 			dateRange:
 				dateRange[0] && dateRange[1]
 					? {
-							from: Math.floor(new Date(dateRange[0]).getTime() / 1000),
-							to: Math.floor(new Date(dateRange[1]).getTime() / 1000),
+							from: dateRange[0],
+							to: dateRange[1],
 							field: "starts_at",
 						}
 					: undefined,
@@ -123,7 +125,7 @@ export const SlotsPage = () => {
 	const rows = slots.map((slot) => (
 		<Table.Tr key={slot.mongoId}>
 			<Table.Td>{slot.title}</Table.Td>
-			<Table.Td>{dayjs.unix(slot.startsAt).format("YYYY-MM-DD HH:mm")}</Table.Td>
+			<Table.Td>{dayjs.unix(new Date(slot.startsAt).getTime()).format("YYYY-MM-DD HH:mm")}</Table.Td>
 			<Table.Td>{slot.capacity}</Table.Td>
 			<Table.Td>{slot.bookedCount}</Table.Td>
 			<Table.Td>

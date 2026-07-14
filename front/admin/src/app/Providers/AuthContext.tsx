@@ -1,5 +1,4 @@
 import { createContext, type ReactNode, useContext, useEffect, useState } from "react";
-import { useNavigateParams } from "../Router/useNavigateParams";
 
 interface AuthContextType {
 	token: string | null;
@@ -17,7 +16,6 @@ const AuthContext = createContext<AuthContextType>({
 
 export function AuthProvider({ children }: { children: ReactNode }) {
 	const [token, setToken] = useState<string | null>(localStorage.getItem("token"));
-	const navigate = useNavigateParams();
 
 	useEffect(() => {
 		if (token) {
@@ -33,7 +31,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 	const logout = () => {
 		setToken(null);
-		navigate("/login");
 	};
 
 	const value: AuthContextType = {

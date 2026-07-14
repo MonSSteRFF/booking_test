@@ -447,12 +447,12 @@
         "type": "object",
         "properties": {
           "from": {
-            "type": "number",
-            "description": "Start date (Unix timestamp in seconds)"
+            "type": "string",
+            "description": "Start date (ISO 8601)"
           },
           "to": {
-            "type": "number",
-            "description": "End date (Unix timestamp in seconds)"
+            "type": "string",
+            "description": "End date (ISO 8601)"
           },
           "field": {
             "type": "string",
@@ -523,8 +523,9 @@
             "maxLength": 200
           },
           "startsAt": {
-            "type": "number",
-            "description": "Slot start time (Unix timestamp in seconds)"
+            "format": "date-time",
+            "type": "string",
+            "description": "Slot start time (ISO 8601)"
           },
           "capacity": {
             "type": "number",
@@ -542,12 +543,14 @@
             "description": "Whether slot is active"
           },
           "createdAt": {
-            "type": "number",
-            "description": "Creation timestamp (Unix timestamp in seconds)"
+            "format": "date-time",
+            "type": "string",
+            "description": "Creation timestamp (ISO 8601)"
           },
           "updatedAt": {
-            "type": "number",
-            "description": "Last update timestamp (Unix timestamp in seconds)"
+            "format": "date-time",
+            "type": "string",
+            "description": "Last update timestamp (ISO 8601)"
           }
         },
         "required": [
@@ -588,8 +591,8 @@
             "maxLength": 200
           },
           "startsAt": {
-            "type": "number",
-            "description": "Slot start time (Unix timestamp in seconds)"
+            "type": "string",
+            "description": "Slot start time (ISO 8601)"
           },
           "capacity": {
             "type": "number",
@@ -613,8 +616,8 @@
             "maxLength": 200
           },
           "startsAt": {
-            "type": "number",
-            "description": "Slot start time (Unix timestamp in seconds)"
+            "type": "string",
+            "description": "Slot start time (ISO 8601)"
           },
           "capacity": {
             "type": "number",
@@ -658,8 +661,9 @@
             "description": "Denormalized slot title at booking time"
           },
           "slotStartsAt": {
-            "type": "number",
-            "description": "Denormalized slot start time at booking time (Unix timestamp in seconds)"
+            "format": "date-time",
+            "type": "string",
+            "description": "Denormalized slot start time at booking time (ISO 8601)"
           },
           "clientName": {
             "type": "string",
@@ -679,12 +683,14 @@
             ]
           },
           "createdAt": {
-            "type": "number",
-            "description": "Creation timestamp (Unix timestamp in seconds)"
+            "format": "date-time",
+            "type": "string",
+            "description": "Creation timestamp (ISO 8601)"
           },
           "updatedAt": {
-            "type": "number",
-            "description": "Last update timestamp (Unix timestamp in seconds)"
+            "format": "date-time",
+            "type": "string",
+            "description": "Last update timestamp (ISO 8601)"
           }
         },
         "required": [
